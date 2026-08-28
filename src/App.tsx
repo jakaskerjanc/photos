@@ -6,11 +6,15 @@ import { photos } from "./generated/photos";
 
 export function App() {
   const [lightboxIndex, setLightboxIndex] = useState(-1);
+  const thumbnails = photos.map(({ thumbnail, ...photo }) => ({
+    ...photo,
+    src: thumbnail.src,
+  }));
 
   return (
     <main className="gallery-shell">
       <RowsPhotoAlbum
-        photos={photos}
+        photos={thumbnails}
         targetRowHeight={280}
         rowConstraints={{ minPhotos: 1, maxPhotos: 5 }}
         spacing={4}
@@ -27,7 +31,7 @@ export function App() {
         slides={photos}
         plugins={[Zoom]}
         zoom={{ maxZoomPixelRatio: 5, zoomInMultiplier: 1.25 }}
-        carousel={{ finite: false, imageFit: "contain" }}
+        carousel={{ finite: false, imageFit: "contain", preload: 0 }}
         toolbar={{ buttons: ["zoom", "close"] }}
         render={{ buttonPrev: () => null, buttonNext: () => null }}
         controller={{ closeOnBackdropClick: true }}
