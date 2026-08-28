@@ -1,0 +1,27 @@
+{
+  "name": "my-simple-gallery",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run generate:photos && vite",
+    "build": "npm run generate:photos && tsc -b && vite build",
+    "preview": "vite preview",
+    "generate:photos": "node scripts/generate-photo-manifest.mjs"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-photo-album": "^3.6.1",
+    "yet-another-react-lightbox": "^3.32.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/node": "^24.10.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "image-size": "^2.0.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2"
+  }
+}
