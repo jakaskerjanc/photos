@@ -16,15 +16,15 @@ The build automatically scans that folder and generates the gallery manifest. Ph
 ## Run locally
 
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## Build and preview
 
 ```bash
-npm run build
-npm run preview
+pnpm build
+pnpm preview
 ```
 
 ## Deploy
