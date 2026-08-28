@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RowsPhotoAlbum } from "react-photo-album";
 import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import { photos } from "./generated/photos";
 
 export function App() {
@@ -24,8 +25,10 @@ export function App() {
         close={() => setLightboxIndex(-1)}
         index={lightboxIndex}
         slides={photos}
+        plugins={[Zoom]}
+        zoom={{ maxZoomPixelRatio: 5, zoomInMultiplier: 1.25 }}
         carousel={{ finite: false, imageFit: "contain" }}
-        toolbar={{ buttons: ["close"] }}
+        toolbar={{ buttons: ["zoom", "close"] }}
         render={{ buttonPrev: () => null, buttonNext: () => null }}
         controller={{ closeOnBackdropClick: true }}
       />
