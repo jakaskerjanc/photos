@@ -1,11 +1,12 @@
-import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { extname, join, posix, relative, sep } from "node:path";
+import { mkdir, writeFile } from "node:fs/promises";
+import { availableParallelism } from "node:os";
+import { basename, join, posix, relative, sep } from "node:path";
 import { exiftool } from "exiftool-vendored";
-import { imageSize } from "image-size";
-import sharp from "sharp";
+import type { GalleryAlbum } from "../src/gallery";
 import { discoverAlbums } from "./albums";
-import type { GalleryAlbum, GalleryPhoto } from "../src/gallery";
+import { mapWithConcurrency } from "./concurrency";
 import { formatManifest } from "./manifest";
+import { type PhotoOutputDirectories, processPhoto } from "./photos";
 import { removeStaleFiles } from "./stale-files";
 
 const projectRoot = process.cwd();
@@ -15,20 +16,8 @@ const derivativesDirectory = join(publicDirectory, "photos", "derivatives");
 const fullImagesDirectory = join(publicDirectory, "photos", "full");
 const generatedDirectory = join(projectRoot, "src", "generated");
 const manifestPath = join(generatedDirectory, "photos.ts");
-const thumbnailWidth = 640;
-const panoramaAspectRatio = 2;
-const panoramaThumbnailHeight = 960;
-const maxPanoramaThumbnailWidth = 6144;
 
-await mkdir(sourcePhotosDirectory, { recursive: true });
-await mkdir(derivativesDirectory, { recursive: true });
-await mkdir(fullImagesDirectory, { recursive: true });
-await mkdir(generatedDirectory, { recursive: true });
-
-const { albums: albumSources, warnings } = await discoverAlbums(sourcePhotosDirectory);
-for (const warning of warnings) {
-  console.warn(warning);
-}
+type PhotoJob = { albumIndex: number; slug: string; sourcePath: string; directories: PhotoOutputDirectories };
 
 function urlFor(filePath: string) {
   const encodedPath = relative(publicDirectory, filePath)
@@ -38,97 +27,73 @@ function urlFor(filePath: string) {
   return `\${import.meta.env.BASE_URL}${encodedPath}`;
 }
 
-async function writeFullImageWithoutMetadata(sourcePath: string, destinationPath: string) {
-  await copyFile(sourcePath, destinationPath);
-  // Strips EXIF/GPS/IPTC/XMP in place by editing the container's metadata boxes directly,
-  // so the pixel data is untouched (no quality loss, no encoder dimension limits).
-  await exiftool.write(destinationPath, {}, { writeArgs: ["-all=", "-overwrite_original"] });
-}
-
-async function outputIsCurrent(sourcePath: string, outputPath: string) {
-  try {
-    const [source, output] = await Promise.all([stat(sourcePath), stat(outputPath)]);
-    return output.mtimeMs >= source.mtimeMs;
-  } catch {
-    return false;
-  }
-}
-
 function plural(count: number, noun: string) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-const manifestAlbums: GalleryAlbum[] = [];
-const expectedDerivativeFiles = new Set<string>();
-const expectedFullImageFiles = new Set<string>();
+async function generateManifest() {
+  await mkdir(sourcePhotosDirectory, { recursive: true });
+  await mkdir(generatedDirectory, { recursive: true });
 
-for (const album of albumSources) {
-  // The loose album has slug "", so joining it keeps its files in the top-level output directories.
-  const albumDerivativesDirectory = join(derivativesDirectory, album.slug);
-  const albumFullImagesDirectory = join(fullImagesDirectory, album.slug);
-  await mkdir(albumDerivativesDirectory, { recursive: true });
-  await mkdir(albumFullImagesDirectory, { recursive: true });
+  const { albums: albumSources, warnings } = await discoverAlbums(sourcePhotosDirectory);
+  for (const warning of warnings) {
+    console.warn(warning);
+  }
 
-  const photoEntries: GalleryPhoto[] = [];
+  const jobs: PhotoJob[] = [];
+  for (const [albumIndex, album] of albumSources.entries()) {
+    // The loose album has slug "", so joining it keeps its files in the top-level output directories.
+    const directories = {
+      derivatives: join(derivativesDirectory, album.slug),
+      fullImages: join(fullImagesDirectory, album.slug),
+    };
+    await mkdir(directories.derivatives, { recursive: true });
+    await mkdir(directories.fullImages, { recursive: true });
 
-  for (const fileName of album.fileNames) {
-    const filePath = join(album.directory, fileName);
-    const { width, height } = imageSize(await readFile(filePath));
+    for (const fileName of album.fileNames) {
+      jobs.push({ albumIndex, slug: album.slug, sourcePath: join(album.directory, fileName), directories });
+    }
+  }
 
-    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
-      console.warn(`Skipping ${relative(sourcePhotosDirectory, filePath)}: image dimensions could not be read.`);
-      continue;
+  const results = await mapWithConcurrency(jobs, availableParallelism(), (job) =>
+    processPhoto(job.sourcePath, job.directories),
+  );
+
+  const manifestAlbums: GalleryAlbum[] = albumSources.map(({ slug, title }) => ({ slug, title, photos: [] }));
+  const expectedDerivativeFiles = new Set<string>();
+  const expectedFullImageFiles = new Set<string>();
+
+  results.forEach((result, index) => {
+    const { albumIndex, slug, sourcePath } = jobs[index];
+    if ("skipped" in result) {
+      console.warn(`Skipping ${relative(sourcePhotosDirectory, sourcePath)}: ${result.skipped}.`);
+      return;
     }
 
-    const aspectRatio = width / height;
-    const thumbnailPixelWidth = Math.min(
-      width,
-      aspectRatio >= panoramaAspectRatio
-        ? Math.min(maxPanoramaThumbnailWidth, Math.round(aspectRatio * panoramaThumbnailHeight))
-        : thumbnailWidth,
-    );
-    const baseName = fileName.slice(0, -extname(fileName).length);
-    const derivativeName = `${baseName}-${thumbnailPixelWidth}w.webp`;
-    const derivativePath = join(albumDerivativesDirectory, derivativeName);
-    const fullImagePath = join(albumFullImagesDirectory, fileName);
-    expectedDerivativeFiles.add(posix.join(album.slug, derivativeName));
-    expectedFullImageFiles.add(posix.join(album.slug, fileName));
-
-    if (!(await outputIsCurrent(filePath, derivativePath))) {
-      await sharp(filePath)
-        .resize({ width: thumbnailPixelWidth, withoutEnlargement: true })
-        .webp({ quality: 76 })
-        .toFile(derivativePath);
-    }
-
-    if (!(await outputIsCurrent(filePath, fullImagePath))) {
-      await writeFullImageWithoutMetadata(filePath, fullImagePath);
-    }
-
-    photoEntries.push({
-      src: urlFor(fullImagePath),
-      width,
-      height,
-      thumbnail: {
-        src: urlFor(derivativePath),
-        width: thumbnailPixelWidth,
-        height: Math.round((height * thumbnailPixelWidth) / width),
-      },
+    expectedDerivativeFiles.add(posix.join(slug, basename(result.thumbnail.path)));
+    expectedFullImageFiles.add(posix.join(slug, basename(result.fullImagePath)));
+    manifestAlbums[albumIndex].photos.push({
+      src: urlFor(result.fullImagePath),
+      width: result.width,
+      height: result.height,
+      thumbnail: { src: urlFor(result.thumbnail.path), width: result.thumbnail.width, height: result.thumbnail.height },
     });
-  }
+  });
 
-  if (photoEntries.length > 0) {
-    manifestAlbums.push({ slug: album.slug, title: album.title, photos: photoEntries });
-  }
+  const nonEmptyAlbums = manifestAlbums.filter((album) => album.photos.length > 0);
+
+  await Promise.all([
+    removeStaleFiles(derivativesDirectory, expectedDerivativeFiles),
+    removeStaleFiles(fullImagesDirectory, expectedFullImageFiles),
+  ]);
+
+  await writeFile(manifestPath, formatManifest(nonEmptyAlbums), "utf8");
+  const photoCount = nonEmptyAlbums.reduce((total, album) => total + album.photos.length, 0);
+  console.log(`Generated photo manifest with ${plural(photoCount, "photo")} in ${plural(nonEmptyAlbums.length, "album")}.`);
 }
 
-await Promise.all([
-  removeStaleFiles(derivativesDirectory, expectedDerivativeFiles),
-  removeStaleFiles(fullImagesDirectory, expectedFullImageFiles),
-]);
-
-await writeFile(manifestPath, formatManifest(manifestAlbums), "utf8");
-const photoCount = manifestAlbums.reduce((total, album) => total + album.photos.length, 0);
-console.log(`Generated photo manifest with ${plural(photoCount, "photo")} in ${plural(manifestAlbums.length, "album")}.`);
-
-await exiftool.end();
+try {
+  await generateManifest();
+} finally {
+  await exiftool.end();
+}

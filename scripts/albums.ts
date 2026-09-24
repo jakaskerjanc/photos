@@ -34,6 +34,21 @@ function imageFileNames(entries: Dirent[]) {
     .sort(compareNames);
 }
 
+// Thumbnails are named after the photo without its extension, so "a.jpg" and "a.png" would overwrite each other.
+// Compared case-insensitively because macOS file systems treat "A.jpg" and "a.jpg" as the same file.
+function assertUniqueBaseNames(fileNames: string[], location: string) {
+  const fileNamesByBaseName = new Map<string, string>();
+
+  for (const fileName of fileNames) {
+    const baseName = fileName.slice(0, -extname(fileName).length).toLowerCase();
+    const existingFileName = fileNamesByBaseName.get(baseName);
+    if (existingFileName) {
+      throw new Error(`Photos "${existingFileName}" and "${fileName}" in ${location} have the same name. Rename one of them.`);
+    }
+    fileNamesByBaseName.set(baseName, fileName);
+  }
+}
+
 function visibleFolderNames(entries: Dirent[]) {
   return entries
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
@@ -48,6 +63,7 @@ export async function discoverAlbums(rootDirectory: string) {
 
   const looseFileNames = imageFileNames(entries);
   if (looseFileNames.length > 0) {
+    assertUniqueBaseNames(looseFileNames, "the photos folder");
     albums.push({ slug: "", title: null, directory: rootDirectory, fileNames: looseFileNames });
   }
 
@@ -66,6 +82,8 @@ export async function discoverAlbums(rootDirectory: string) {
       warnings.push(`Skipping album folder "${folderName}": it contains no supported images.`);
       continue;
     }
+
+    assertUniqueBaseNames(fileNames, `album folder "${folderName}"`);
 
     const title = albumTitle(folderName);
     const slug = slugify(title);

@@ -131,6 +131,24 @@ describe("discoverAlbums", () => {
     });
   });
 
+  it("fails when two photos in an album differ only by extension", async () => {
+    await touch("Trip", "sunset.jpg");
+    await touch("Trip", "Sunset.PNG");
+
+    await assert.rejects(discoverAlbums(root), {
+      message: 'Photos "sunset.jpg" and "Sunset.PNG" in album folder "Trip" have the same name. Rename one of them.',
+    });
+  });
+
+  it("fails when two loose photos differ only by extension", async () => {
+    await touch("sunset.jpg");
+    await touch("sunset.webp");
+
+    await assert.rejects(discoverAlbums(root), {
+      message: 'Photos "sunset.jpg" and "sunset.webp" in the photos folder have the same name. Rename one of them.',
+    });
+  });
+
   it("fails when a folder name has nothing usable for a URL", async () => {
     await touch("東京", "a.jpg");
 
