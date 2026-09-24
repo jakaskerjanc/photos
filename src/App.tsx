@@ -74,7 +74,7 @@ export function App() {
         index={Math.max(lightbox.photoIndex, 0)}
         slides={albums[lightbox.albumIndex]?.photos ?? []}
         plugins={[Zoom]}
-        zoom={{ maxZoomPixelRatio: 5, zoomInMultiplier: 1.25 }}
+        zoom={{ maxZoomPixelRatio: 1.13, zoomInMultiplier: 1.25, doubleClickMaxStops: 1 }}
         carousel={{ finite: false, imageFit: "contain", preload: 0 }}
         toolbar={{ buttons: ["zoom", "close"] }}
         render={{ buttonPrev: () => null, buttonNext: () => null }}
