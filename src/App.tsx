@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RowsPhotoAlbum } from "react-photo-album";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -14,6 +14,16 @@ const titledAlbums = albums.filter((album) => album.title !== null);
 
 export function App() {
   const [lightbox, setLightbox] = useState({ album: 0, index: -1 });
+
+  // The browser jumps to the #slug before the albums have measured their width and
+  // rendered any photos, so it lands at the top of a short page. Jump again once they have.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const slug = decodeURIComponent(window.location.hash.slice(1));
+      if (slug) document.getElementById(slug)?.scrollIntoView({ behavior: "instant" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <main className="gallery-shell">
