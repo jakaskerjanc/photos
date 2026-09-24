@@ -2,7 +2,10 @@ import { useState } from "react";
 import { RowsPhotoAlbum } from "react-photo-album";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
-import { photos } from "./generated/photos";
+import { albums } from "./generated/photos";
+
+// Temporary until the album sections land in the next commit.
+const photos = albums.flatMap((album) => album.photos);
 
 export function App() {
   const [lightboxIndex, setLightboxIndex] = useState(-1);
