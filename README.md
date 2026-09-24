@@ -1,4 +1,4 @@
-# My Simple Gallery
+# Photos
 
 A minimal React photo gallery for GitHub Pages.
 
