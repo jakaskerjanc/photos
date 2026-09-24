@@ -18,6 +18,12 @@ describe("albumTitle", () => {
     assert.equal(albumTitle("2025Iceland"), "2025Iceland");
   });
 
+  it("keeps a leading year or date instead of treating it as an ordering prefix", () => {
+    assert.equal(albumTitle("2024 Norway"), "2024 Norway");
+    assert.equal(albumTitle("2025-06-14 Iceland"), "2025-06-14 Iceland");
+    assert.notEqual(slugify(albumTitle("2024 Norway")), slugify(albumTitle("2025 Norway")));
+  });
+
   it("falls back to the folder name when stripping leaves nothing", () => {
     assert.equal(albumTitle("01 "), "01 ");
   });
