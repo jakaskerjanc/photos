@@ -27,7 +27,7 @@ photos/
     DSC01912-Pano.avif
 ```
 
-- Albums are sorted by folder name. A leading number followed by a space, `-` or `_` controls the order and is hidden from the title, so `01 Iceland 2025` is shown as **Iceland 2025**.
+- Albums are sorted by folder name. A leading number of up to three digits followed by a space, `-` or `_` controls the order and is hidden from the title, so `01 Iceland 2025` is shown as **Iceland 2025**. Longer numbers such as years are kept: `2024 Norway` stays **2024 Norway**.
 - Each album is linked from the index at the top of the page and has its own URL anchor, e.g. `#iceland-2025`.
 - Photos placed directly in `photos` (not in a subfolder) are shown first, without a title.
 - File names only need to be unique within an album.

@@ -271,7 +271,7 @@ export function compareNames(a: string, b: string) {
 }
 
 export function albumTitle(folderName: string) {
-  return folderName.replace(/^\d+[ _-]+/, "") || folderName;
+  return folderName.replace(/^\d{1,3}[ _-]+/, "") || folderName;
 }
 
 export function slugify(title: string) {
