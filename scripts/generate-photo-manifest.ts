@@ -1,10 +1,11 @@
 import { copyFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { extname, join, relative, sep } from "node:path";
+import { extname, join, posix, relative, sep } from "node:path";
 import { exiftool } from "exiftool-vendored";
 import { imageSize } from "image-size";
 import sharp from "sharp";
 import { discoverAlbums } from "./albums";
-import { formatManifest, type ManifestAlbum, type PhotoManifestEntry } from "./manifest";
+import type { GalleryAlbum, GalleryPhoto } from "../src/gallery";
+import { formatManifest } from "./manifest";
 import { removeStaleFiles } from "./stale-files";
 
 const projectRoot = process.cwd();
@@ -44,10 +45,10 @@ async function writeFullImageWithoutMetadata(sourcePath: string, destinationPath
   await exiftool.write(destinationPath, {}, { writeArgs: ["-all=", "-overwrite_original"] });
 }
 
-async function derivativeIsCurrent(sourcePath: string, derivativePath: string) {
+async function outputIsCurrent(sourcePath: string, outputPath: string) {
   try {
-    const [source, derivative] = await Promise.all([stat(sourcePath), stat(derivativePath)]);
-    return derivative.mtimeMs >= source.mtimeMs;
+    const [source, output] = await Promise.all([stat(sourcePath), stat(outputPath)]);
+    return output.mtimeMs >= source.mtimeMs;
   } catch {
     return false;
   }
@@ -57,19 +58,18 @@ function plural(count: number, noun: string) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-const manifestAlbums: ManifestAlbum[] = [];
+const manifestAlbums: GalleryAlbum[] = [];
 const expectedDerivativeFiles = new Set<string>();
 const expectedFullImageFiles = new Set<string>();
 
 for (const album of albumSources) {
-  // The loose album has slug "", so its files stay in the top-level output directories.
+  // The loose album has slug "", so joining it keeps its files in the top-level output directories.
   const albumDerivativesDirectory = join(derivativesDirectory, album.slug);
   const albumFullImagesDirectory = join(fullImagesDirectory, album.slug);
-  const expectedPathPrefix = album.slug ? `${album.slug}/` : "";
   await mkdir(albumDerivativesDirectory, { recursive: true });
   await mkdir(albumFullImagesDirectory, { recursive: true });
 
-  const photoEntries: PhotoManifestEntry[] = [];
+  const photoEntries: GalleryPhoto[] = [];
 
   for (const fileName of album.fileNames) {
     const filePath = join(album.directory, fileName);
@@ -91,17 +91,17 @@ for (const album of albumSources) {
     const derivativeName = `${baseName}-${thumbnailPixelWidth}w.webp`;
     const derivativePath = join(albumDerivativesDirectory, derivativeName);
     const fullImagePath = join(albumFullImagesDirectory, fileName);
-    expectedDerivativeFiles.add(`${expectedPathPrefix}${derivativeName}`);
-    expectedFullImageFiles.add(`${expectedPathPrefix}${fileName}`);
+    expectedDerivativeFiles.add(posix.join(album.slug, derivativeName));
+    expectedFullImageFiles.add(posix.join(album.slug, fileName));
 
-    if (!(await derivativeIsCurrent(filePath, derivativePath))) {
+    if (!(await outputIsCurrent(filePath, derivativePath))) {
       await sharp(filePath)
         .resize({ width: thumbnailPixelWidth, withoutEnlargement: true })
         .webp({ quality: 76 })
         .toFile(derivativePath);
     }
 
-    if (!(await derivativeIsCurrent(filePath, fullImagePath))) {
+    if (!(await outputIsCurrent(filePath, fullImagePath))) {
       await writeFullImageWithoutMetadata(filePath, fullImagePath);
     }
 

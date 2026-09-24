@@ -1,17 +1,16 @@
 import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { extname, join } from "node:path";
+import type { GalleryAlbum } from "../src/gallery";
 
-export const supportedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
+const supportedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
-export type AlbumSource = {
-  slug: string;
-  title: string | null;
+export type AlbumSource = Pick<GalleryAlbum, "slug" | "title"> & {
   directory: string;
   fileNames: string[];
 };
 
-export function compareNames(a: string, b: string) {
+function compareNames(a: string, b: string) {
   return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
 }
 
