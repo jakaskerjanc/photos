@@ -8,9 +8,11 @@
     "dev": "tsx scripts/generate-photo-manifest.ts && vite",
     "build": "tsx scripts/generate-photo-manifest.ts && tsc -b && vite build",
     "preview": "vite preview",
-    "generate:photos": "tsx scripts/generate-photo-manifest.ts"
+    "generate:photos": "tsx scripts/generate-photo-manifest.ts",
+    "test": "tsx --test scripts/*.test.ts"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
     "exiftool-vendored": "^38.1.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -22,7 +24,6 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^6.1.1",
-    "image-size": "^2.0.2",
     "sharp": "^0.35.4",
     "tsx": "^4.20.6",
     "typescript": "^7.0.2",

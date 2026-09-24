@@ -1,13 +1,18 @@
 :root {
   color-scheme: dark;
   background: #0a0a0a;
-  font-family: system-ui, sans-serif;
+  font-family: "Inter", system-ui, sans-serif;
+  font-optical-sizing: auto;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
@@ -22,7 +27,8 @@ body {
   background: #0a0a0a;
 }
 
-button:focus-visible {
+button:focus-visible,
+a:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 3px;
 }
@@ -31,6 +37,56 @@ button:focus-visible {
   width: 100%;
   min-height: 100vh;
   padding: 4px;
+}
+
+.album-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  padding: 16px 8px 8px;
+}
+
+.album-index a {
+  color: #888;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.album-index a:hover {
+  color: #fff;
+}
+
+.album-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 48px 8px 12px;
+}
+
+.album:first-of-type .album-header {
+  padding-top: 16px;
+}
+
+.album-title {
+  min-width: 0;
+  margin: 0;
+  color: #bbb;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+  scroll-margin-top: 16px;
+}
+
+.album-count {
+  flex-shrink: 0;
+  color: #666;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .gallery {
@@ -48,6 +104,10 @@ button:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .gallery img {
     transition: none;
   }
