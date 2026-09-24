@@ -1,15 +1,6 @@
-export type GalleryPhoto = {
-  src: string;
-  width: number;
-  height: number;
-  thumbnail: { src: string; width: number; height: number };
-};
+import type { GalleryAlbum } from "../gallery";
 
-export type GalleryAlbum = {
-  slug: string;
-  title: string | null;
-  photos: GalleryPhoto[];
-};
+export type { GalleryAlbum, GalleryPhoto } from "../gallery";
 
 export const albums: GalleryAlbum[] = [
   {

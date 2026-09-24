@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { after, before, describe, it } from "node:test";
-import { formatManifest, type ManifestAlbum } from "./manifest";
+import type { GalleryAlbum } from "../src/gallery";
+import { formatManifest } from "./manifest";
 
 describe("formatManifest", () => {
   let directory: string;
@@ -18,10 +19,10 @@ describe("formatManifest", () => {
     await rm(directory, { recursive: true, force: true });
   });
 
-  async function importManifest(albums: ManifestAlbum[]) {
+  async function importManifest(albums: GalleryAlbum[]) {
     const path = join(directory, `photos-${fileCount++}.ts`);
     await writeFile(path, formatManifest(albums), "utf8");
-    const module = (await import(pathToFileURL(path).href)) as { albums: ManifestAlbum[] };
+    const module = (await import(pathToFileURL(path).href)) as { albums: GalleryAlbum[] };
     return module.albums;
   }
 
@@ -33,7 +34,7 @@ describe("formatManifest", () => {
   });
 
   it("round-trips loose and titled albums", async () => {
-    const albums: ManifestAlbum[] = [
+    const albums: GalleryAlbum[] = [
       { slug: "", title: null, photos: [photo("loose")] },
       { slug: "julian-alps", title: "Julian Alps", photos: [photo("julian-alps/a"), photo("julian-alps/b")] },
     ];
@@ -42,7 +43,7 @@ describe("formatManifest", () => {
   });
 
   it("round-trips titles containing quotes, backticks and template syntax", async () => {
-    const albums: ManifestAlbum[] = [
+    const albums: GalleryAlbum[] = [
       { slug: "mum-s-best-trip-x", title: 'Mum\'s "best" `trip` ${x} \\ ok', photos: [photo("a")] },
     ];
 

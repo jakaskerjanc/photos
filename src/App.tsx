@@ -4,16 +4,17 @@ import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import { albums } from "./generated/photos";
 
-const albumThumbnails = albums.map((album) =>
-  album.photos.map(({ thumbnail, ...photo }) => ({
+const galleryAlbums = albums.map((album) => ({
+  ...album,
+  thumbnails: album.photos.map(({ thumbnail, ...photo }) => ({
     ...photo,
     src: thumbnail.src,
   })),
-);
-const titledAlbums = albums.filter((album) => album.title !== null);
+}));
+const titledAlbums = galleryAlbums.filter((album) => album.title !== null);
 
 export function App() {
-  const [lightbox, setLightbox] = useState({ album: 0, index: -1 });
+  const [lightbox, setLightbox] = useState({ albumIndex: 0, photoIndex: -1 });
 
   // The browser jumps to the #slug before the albums have measured their width and
   // rendered any photos, so it lands at the top of a short page. Jump again once they have.
@@ -37,7 +38,7 @@ export function App() {
         </nav>
       )}
 
-      {albums.map((album, albumIndex) => (
+      {galleryAlbums.map((album, albumIndex) => (
         <section
           key={album.slug}
           className="album"
@@ -55,11 +56,11 @@ export function App() {
           )}
 
           <RowsPhotoAlbum
-            photos={albumThumbnails[albumIndex]}
+            photos={album.thumbnails}
             targetRowHeight={280}
             rowConstraints={{ minPhotos: 1, maxPhotos: 5 }}
             spacing={4}
-            onClick={({ index }) => setLightbox({ album: albumIndex, index })}
+            onClick={({ index }) => setLightbox({ albumIndex, photoIndex: index })}
             componentsProps={{
               container: { className: "gallery" },
             }}
@@ -68,10 +69,10 @@ export function App() {
       ))}
 
       <Lightbox
-        open={lightbox.index >= 0}
-        close={() => setLightbox((current) => ({ ...current, index: -1 }))}
-        index={Math.max(lightbox.index, 0)}
-        slides={albums[lightbox.album]?.photos ?? []}
+        open={lightbox.photoIndex >= 0}
+        close={() => setLightbox((current) => ({ ...current, photoIndex: -1 }))}
+        index={Math.max(lightbox.photoIndex, 0)}
+        slides={albums[lightbox.albumIndex]?.photos ?? []}
         plugins={[Zoom]}
         zoom={{ maxZoomPixelRatio: 5, zoomInMultiplier: 1.25 }}
         carousel={{ finite: false, imageFit: "contain", preload: 0 }}
