@@ -1,5 +1,6 @@
 import { copyFile, mkdir, readFile, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import { extname, join, relative, sep } from "node:path";
+import { exiftool } from "exiftool-vendored";
 import { imageSize } from "image-size";
 import sharp from "sharp";
 
@@ -36,6 +37,13 @@ function urlFor(filePath: string) {
     .map((segment) => encodeURIComponent(segment))
     .join("/");
   return `\${import.meta.env.BASE_URL}${encodedPath}`;
+}
+
+async function writeFullImageWithoutMetadata(sourcePath: string, destinationPath: string) {
+  await copyFile(sourcePath, destinationPath);
+  // Strips EXIF/GPS/IPTC/XMP in place by editing the container's metadata boxes directly,
+  // so the pixel data is untouched (no quality loss, no encoder dimension limits).
+  await exiftool.write(destinationPath, {}, { writeArgs: ["-all=", "-overwrite_original"] });
 }
 
 async function derivativeIsCurrent(sourcePath: string, derivativePath: string) {
@@ -81,7 +89,7 @@ for (const fileName of photoFiles) {
   }
 
   if (!(await derivativeIsCurrent(filePath, fullImagePath))) {
-    await copyFile(filePath, fullImagePath);
+    await writeFullImageWithoutMetadata(filePath, fullImagePath);
   }
 
   photoEntries.push({
@@ -129,3 +137,5 @@ ${formattedPhotoEntries.join(",\n")}
 
 await writeFile(manifestPath, manifest, "utf8");
 console.log(`Generated photo manifest with ${photoEntries.length} photo${photoEntries.length === 1 ? "" : "s"}.`);
+
+await exiftool.end();

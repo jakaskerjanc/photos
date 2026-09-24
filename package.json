@@ -11,6 +11,7 @@
     "generate:photos": "tsx scripts/generate-photo-manifest.ts"
   },
   "dependencies": {
+    "exiftool-vendored": "^38.1.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-photo-album": "^3.6.1",
