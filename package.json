@@ -8,7 +8,8 @@
     "dev": "tsx scripts/generate-photo-manifest.ts && vite",
     "build": "tsx scripts/generate-photo-manifest.ts && tsc -b && vite build",
     "preview": "vite preview",
-    "generate:photos": "tsx scripts/generate-photo-manifest.ts"
+    "generate:photos": "tsx scripts/generate-photo-manifest.ts",
+    "test": "tsx --test scripts/*.test.ts"
   },
   "dependencies": {
     "exiftool-vendored": "^38.1.2",
