@@ -30,7 +30,7 @@ photos/
 | --- | --- |
 | Subfolder of `photos/` | One album. Photos inside are sorted by filename, same as today. |
 | Album order | Sorted by folder name with the same numeric-aware compare used for files (`localeCompare(…, { numeric: true, sensitivity: "base" })`). |
-| Ordering prefix | A leading `NN ` / `NN-` / `NN_` (digits, then a space, `-` or `_`) is stripped from the displayed title. `01 Iceland 2025` is shown as **Iceland 2025**. Matches the existing "name files `001.jpg` to control order" convention in the README. |
+| Ordering prefix | A leading `NN ` / `NN-` / `NN_` (1–3 digits, then a space, `-` or `_`) is stripped from the displayed title. Longer numbers are kept, so `2024 Norway` and `2025-06-14 Iceland` keep their year or date. `01 Iceland 2025` is shown as **Iceland 2025**. Matches the existing "name files `001.jpg` to control order" convention in the README. |
 | Empty folder (no supported images) | Skipped with a console warning. |
 | Nested folders (`photos/A/B/…`) | Not supported. Ignored with a console warning. Only one level of albums. |
 | Hidden folders (`.something`) | Ignored silently. |
@@ -129,8 +129,9 @@ Log line becomes e.g. `Generated photo manifest with 51 photos in 3 albums.`
   style and scroll smoothly (`scroll-behavior: smooth`, disabled under
   `prefers-reduced-motion`). It wraps on narrow screens. It is not sticky, to keep the page chrome
   minimal.
-- **Deep links**: loading `/#julian-alps` scrolls to that album through native anchor behaviour.
-  Nothing else to add.
+- **Deep links**: loading `/#julian-alps` scrolls to that album. The browser's own anchor jump runs
+  before the photo rows have measured their width, so the page is still short and it lands at the top;
+  `App` scrolls to the hash once more on the frame after mount, when the albums have their real height.
 
 ### Lightbox
 
