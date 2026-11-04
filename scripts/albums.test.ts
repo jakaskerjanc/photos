@@ -156,4 +156,29 @@ describe("discoverAlbums", () => {
       message: 'Album folder "東京" has no letters or digits that can be used in a URL. Rename it.',
     });
   });
+
+  it("reads the description and cover from album.md", async () => {
+    await touch("Iceland", "a.jpg");
+    await touch("Iceland", "Cover.JPG");
+    await writeFile(join(root, "Iceland", "album.md"), "---\ncover: cover.jpg\n---\nTwo weeks.\n");
+
+    const { albums, warnings } = await discoverAlbums(root);
+
+    assert.deepEqual(warnings, []);
+    assert.equal(albums[0].description, "Two weeks.");
+    assert.equal(albums[0].coverFileName, "Cover.JPG");
+    assert.deepEqual(albums[0].fileNames, ["a.jpg", "Cover.JPG"]);
+  });
+
+  it("warns about a cover that is not in the album", async () => {
+    await touch("Iceland", "a.jpg");
+    await writeFile(join(root, "Iceland", "album.md"), "---\ncover: missing.jpg\n---\n");
+
+    const { albums, warnings } = await discoverAlbums(root);
+
+    assert.equal(albums[0].coverFileName, undefined);
+    assert.deepEqual(warnings, [
+      'The cover "missing.jpg" set in album.md in album folder "Iceland" is not a photo there; using the first photo.',
+    ]);
+  });
 });

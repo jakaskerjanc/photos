@@ -5,6 +5,7 @@ import { exiftool } from "exiftool-vendored";
 import type { GalleryAlbum } from "../src/gallery";
 import { discoverAlbums } from "./albums";
 import { mapWithConcurrency } from "./concurrency";
+import { type CaptureDate, formatDate, formatDateRange } from "./exif";
 import { formatManifest } from "./manifest";
 import { type PhotoOutputDirectories, processPhoto } from "./photos";
 import { removeStaleFiles } from "./stale-files";
@@ -17,7 +18,13 @@ const fullImagesDirectory = join(publicDirectory, "photos", "full");
 const generatedDirectory = join(projectRoot, "src", "generated");
 const manifestPath = join(generatedDirectory, "photos.ts");
 
-type PhotoJob = { albumIndex: number; slug: string; sourcePath: string; directories: PhotoOutputDirectories };
+type PhotoJob = {
+  albumIndex: number;
+  slug: string;
+  sourcePath: string;
+  isCover: boolean;
+  directories: PhotoOutputDirectories;
+};
 
 function urlFor(filePath: string) {
   const encodedPath = relative(publicDirectory, filePath)
@@ -51,7 +58,13 @@ async function generateManifest() {
     await mkdir(directories.fullImages, { recursive: true });
 
     for (const fileName of album.fileNames) {
-      jobs.push({ albumIndex, slug: album.slug, sourcePath: join(album.directory, fileName), directories });
+      jobs.push({
+        albumIndex,
+        slug: album.slug,
+        sourcePath: join(album.directory, fileName),
+        isCover: fileName === album.coverFileName,
+        directories,
+      });
     }
   }
 
@@ -59,12 +72,18 @@ async function generateManifest() {
     processPhoto(job.sourcePath, job.directories),
   );
 
-  const manifestAlbums: GalleryAlbum[] = albumSources.map(({ slug, title }) => ({ slug, title, photos: [] }));
+  const manifestAlbums: GalleryAlbum[] = albumSources.map(({ slug, title, description }) => ({
+    slug,
+    title,
+    ...(description && { description }),
+    photos: [],
+  }));
+  const albumDates: CaptureDate[][] = albumSources.map(() => []);
   const expectedDerivativeFiles = new Set<string>();
   const expectedFullImageFiles = new Set<string>();
 
   results.forEach((result, index) => {
-    const { albumIndex, slug, sourcePath } = jobs[index];
+    const { albumIndex, slug, sourcePath, isCover } = jobs[index];
     if ("skipped" in result) {
       console.warn(`Skipping ${relative(sourcePhotosDirectory, sourcePath)}: ${result.skipped}.`);
       return;
@@ -74,13 +93,24 @@ async function generateManifest() {
       expectedDerivativeFiles.add(posix.join(slug, basename(thumbnail.path)));
     }
     expectedFullImageFiles.add(posix.join(slug, basename(result.fullImagePath)));
-    manifestAlbums[albumIndex].photos.push({
+    const album = manifestAlbums[albumIndex];
+    // Counted after skipped photos are dropped, so the index matches the photos array.
+    if (isCover) album.cover = album.photos.length;
+    if (result.taken) albumDates[albumIndex].push(result.taken);
+    const details = [result.taken && formatDate(result.taken), result.exposure].filter(Boolean).join(" · ");
+    album.photos.push({
       src: urlFor(result.fullImagePath),
       width: result.width,
       height: result.height,
       placeholder: result.placeholder,
       thumbnails: result.thumbnails.map(({ path, width, height }) => ({ src: urlFor(path), width, height })),
+      ...(details && { details }),
     });
+  });
+
+  manifestAlbums.forEach((album, albumIndex) => {
+    const dates = formatDateRange(albumDates[albumIndex]);
+    if (dates) album.dates = dates;
   });
 
   const nonEmptyAlbums = manifestAlbums.filter((album) => album.photos.length > 0);
