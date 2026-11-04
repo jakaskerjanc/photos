@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { after, afterEach, beforeEach, describe, it } from "node:test";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
-import { processPhoto, thumbnailSize } from "./photos";
+import { processPhoto, thumbnailQualityFor, thumbnailSize } from "./photos";
 
 after(async () => {
   await exiftool.end();
@@ -28,6 +28,23 @@ describe("thumbnailSize", () => {
   it("never enlarges small photos", () => {
     assert.deepEqual(thumbnailSize(300, 200), { width: 300, height: 200 });
     assert.deepEqual(thumbnailSize(1000, 400), { width: 1000, height: 400 });
+  });
+});
+
+describe("thumbnailQualityFor", () => {
+  it("uses the normal quality for typical photos", () => {
+    // 24 MP stored in 3 MB is 1 bit per pixel.
+    assert.equal(thumbnailQualityFor(3_000_000, 6000, 4000), 76);
+  });
+
+  it("uses a higher quality for sources that are already heavily compressed", () => {
+    // 24 MP stored in 600 KB is 0.2 bits per pixel.
+    assert.equal(thumbnailQualityFor(600_000, 6000, 4000), 90);
+  });
+
+  it("judges file size relative to resolution", () => {
+    // The same 600 KB is a generous size for a 1200x800 image.
+    assert.equal(thumbnailQualityFor(600_000, 1200, 800), 76);
   });
 });
 

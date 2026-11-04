@@ -11,7 +11,7 @@ Put supported image files in [`photos`](./photos):
 - `.webp`
 - `.avif`
 
-The build automatically scans that folder and writes the gallery manifest. It generates a 640px WebP thumbnail for normal images; panoramas (aspect ratio of at least 2:1) receive a larger thumbnail sized for a 960px display height, capped at 6144px wide. The grid loads that thumbnail; opening a photo loads its original file from `public/photos/full`.
+The build automatically scans that folder and writes the gallery manifest. It generates a 640px WebP thumbnail for normal images; panoramas (aspect ratio of at least 2:1) receive a larger thumbnail sized for a 960px display height, capped at 6144px wide. The grid loads that thumbnail; opening a photo loads its original file from `public/photos/full`. Thumbnails are WebP quality 76, except for photos whose files are already very small for their resolution (under 0.3 bits per pixel): those are already heavily compressed, so their thumbnails use quality 90 to avoid losing what detail is left.
 
 Published full-size photos have their metadata removed (camera details, GPS position, captions), keeping only the color profile and rotation needed to display them correctly.
 

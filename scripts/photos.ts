@@ -9,6 +9,10 @@ const panoramaAspectRatio = 2;
 const panoramaThumbnailHeight = 960;
 const maxPanoramaThumbnailWidth = 6144;
 const thumbnailQuality = 76;
+// A source file this small for its resolution is already heavily compressed. Its thumbnail is encoded at a
+// higher quality so the second round of compression doesn't smear the detail that is left.
+const compressedSourceBitsPerPixel = 0.3;
+const compressedSourceThumbnailQuality = 90;
 
 export type PhotoOutputDirectories = { derivatives: string; fullImages: string };
 
@@ -27,6 +31,11 @@ export function thumbnailSize(width: number, height: number) {
       : thumbnailWidth;
   const thumbnailPixelWidth = Math.min(width, targetWidth);
   return { width: thumbnailPixelWidth, height: Math.round((height * thumbnailPixelWidth) / width) };
+}
+
+export function thumbnailQualityFor(fileBytes: number, width: number, height: number) {
+  const bitsPerPixel = (fileBytes * 8) / (width * height);
+  return bitsPerPixel < compressedSourceBitsPerPixel ? compressedSourceThumbnailQuality : thumbnailQuality;
 }
 
 // Outputs carry their source's modification time, so any change to the source (newer or older) triggers a rebuild.
@@ -91,7 +100,7 @@ export async function processPhoto(
     await writeOutput(source, thumbnailPath, (temporaryPath) =>
       sharp(sourcePath, { autoOrient: true })
         .resize({ width: thumbnail.width, withoutEnlargement: true })
-        .webp({ quality: thumbnailQuality })
+        .webp({ quality: thumbnailQualityFor(source.size, size.width, size.height) })
         .toFile(temporaryPath),
     );
   }
