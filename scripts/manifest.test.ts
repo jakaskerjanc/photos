@@ -30,7 +30,11 @@ describe("formatManifest", () => {
     src: `/photos/full/${name}.avif`,
     width: 4000,
     height: 3000,
-    thumbnail: { src: `/photos/derivatives/${name}-640w.webp`, width: 640, height: 480 },
+    placeholder: "data:image/webp;base64,UklGRg==",
+    thumbnails: [
+      { src: `/photos/derivatives/${name}-640w.webp`, width: 640, height: 480 },
+      { src: `/photos/derivatives/${name}-960w.webp`, width: 960, height: 720 },
+    ],
   });
 
   it("round-trips loose and titled albums", async () => {

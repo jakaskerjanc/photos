@@ -11,7 +11,7 @@ Put supported image files in [`photos`](./photos):
 - `.webp`
 - `.avif`
 
-The build automatically scans that folder and writes the gallery manifest. It generates a 640px WebP thumbnail for normal images; panoramas (aspect ratio of at least 2:1) receive a larger thumbnail sized for a 960px display height, capped at 6144px wide. The grid loads that thumbnail; opening a photo loads its original file from `public/photos/full`. Thumbnails are WebP quality 76, except for photos whose files are already very small for their resolution (under 0.3 bits per pixel): those are already heavily compressed, so their thumbnails use quality 90 to avoid losing what detail is left.
+The build automatically scans that folder and writes the gallery manifest. It generates 640px and 960px wide WebP thumbnails for normal images; the browser picks the 960px one on high-density screens. Panoramas (aspect ratio of at least 2:1) receive a single larger thumbnail sized for a 960px display height, capped at 6144px wide. Each photo also gets a 12px preview, inlined in the manifest, that is shown blurred while its thumbnail loads. Opening a photo loads its original file from `public/photos/full`; the lightbox's thumbnail strip reuses the grid thumbnails. Thumbnails are WebP quality 76, except for photos whose files are already very small for their resolution (under 0.3 bits per pixel): those are already heavily compressed, so their thumbnails use quality 90 to avoid losing what detail is left.
 
 Published full-size photos have their metadata removed (camera details, GPS position, captions), keeping only the color profile and rotation needed to display them correctly.
 

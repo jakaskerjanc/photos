@@ -5,29 +5,39 @@ import { join } from "node:path";
 import { after, afterEach, beforeEach, describe, it } from "node:test";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
-import { processPhoto, thumbnailQualityFor, thumbnailSize } from "./photos";
+import { processPhoto, thumbnailQualityFor, thumbnailSizes } from "./photos";
 
 after(async () => {
   await exiftool.end();
 });
 
-describe("thumbnailSize", () => {
-  it("uses a 640px wide thumbnail for normal photos", () => {
-    assert.deepEqual(thumbnailSize(4000, 3000), { width: 640, height: 480 });
-    assert.deepEqual(thumbnailSize(3000, 4000), { width: 640, height: 853 });
+describe("thumbnailSizes", () => {
+  it("uses 640px and 960px wide thumbnails for normal photos", () => {
+    assert.deepEqual(thumbnailSizes(4000, 3000), [
+      { width: 640, height: 480 },
+      { width: 960, height: 720 },
+    ]);
+    assert.deepEqual(thumbnailSizes(3000, 4000), [
+      { width: 640, height: 853 },
+      { width: 960, height: 1280 },
+    ]);
   });
 
-  it("sizes panoramas for a 960px display height", () => {
-    assert.deepEqual(thumbnailSize(8000, 4000), { width: 1920, height: 960 });
+  it("sizes panoramas for a 960px display height, with a single thumbnail", () => {
+    assert.deepEqual(thumbnailSizes(8000, 4000), [{ width: 1920, height: 960 }]);
   });
 
   it("caps panorama thumbnails at 6144px wide", () => {
-    assert.deepEqual(thumbnailSize(40000, 2000), { width: 6144, height: 307 });
+    assert.deepEqual(thumbnailSizes(40000, 2000), [{ width: 6144, height: 307 }]);
   });
 
   it("never enlarges small photos", () => {
-    assert.deepEqual(thumbnailSize(300, 200), { width: 300, height: 200 });
-    assert.deepEqual(thumbnailSize(1000, 400), { width: 1000, height: 400 });
+    assert.deepEqual(thumbnailSizes(300, 200), [{ width: 300, height: 200 }]);
+    assert.deepEqual(thumbnailSizes(800, 600), [
+      { width: 640, height: 480 },
+      { width: 800, height: 600 },
+    ]);
+    assert.deepEqual(thumbnailSizes(1000, 400), [{ width: 1000, height: 400 }]);
   });
 });
 
@@ -85,14 +95,16 @@ describe("processPhoto", () => {
     assert.ok(!("skipped" in result));
     assert.equal(result.width, 800);
     assert.equal(result.height, 1200);
-    assert.deepEqual(result.thumbnail, {
-      path: join(directories.derivatives, "portrait-640w.webp"),
-      width: 640,
-      height: 960,
-    });
+    // The 800px wide source is not enlarged to 960px.
+    assert.deepEqual(result.thumbnails, [
+      { path: join(directories.derivatives, "portrait-640w.webp"), width: 640, height: 960 },
+      { path: join(directories.derivatives, "portrait-800w.webp"), width: 800, height: 1200 },
+    ]);
 
-    const thumbnail = await sharp(result.thumbnail.path).metadata();
-    assert.deepEqual([thumbnail.width, thumbnail.height], [640, 960]);
+    for (const { path, width, height } of result.thumbnails) {
+      const thumbnail = await sharp(path).metadata();
+      assert.deepEqual([thumbnail.width, thumbnail.height], [width, height]);
+    }
 
     const fullImageTags = await exiftool.read(result.fullImagePath);
     assert.equal(fullImageTags.GPSLatitude, undefined);
@@ -100,10 +112,21 @@ describe("processPhoto", () => {
     assert.ok(fullImageTags.ProfileDescription, "full image should keep its color profile");
   });
 
+  it("creates a tiny rotated placeholder preview", async () => {
+    const result = await processPhoto(await writeCameraJpeg("portrait.jpg"), directories);
+    assert.ok(!("skipped" in result));
+
+    const [prefix, data] = result.placeholder.split(",");
+    assert.equal(prefix, "data:image/webp;base64");
+    const preview = await sharp(Buffer.from(data, "base64")).metadata();
+    assert.deepEqual([preview.width, preview.height], [8, 12]);
+    assert.ok(result.placeholder.length < 500, "placeholder should stay small enough to inline");
+  });
+
   it("leaves no temporary files behind", async () => {
     await processPhoto(await writeCameraJpeg("a.jpg"), directories);
 
-    assert.deepEqual(await readdir(directories.derivatives), ["a-640w.webp"]);
+    assert.deepEqual((await readdir(directories.derivatives)).sort(), ["a-640w.webp", "a-800w.webp"]);
     assert.deepEqual(await readdir(directories.fullImages), ["a.jpg"]);
   });
 
@@ -122,26 +145,27 @@ describe("processPhoto", () => {
     const sourcePath = await writeCameraJpeg("a.jpg");
     const first = await processPhoto(sourcePath, directories);
     assert.ok(!("skipped" in first));
-    const outputPaths = [first.fullImagePath, first.thumbnail.path];
+    const outputPaths = [first.fullImagePath, ...first.thumbnails.map(({ path }) => path)];
     const outputTimes = () => Promise.all(outputPaths.map(async (path) => (await stat(path)).mtimeMs));
 
-    const newerTime = new Date(Date.now() + 60_000);
+    // Whole seconds, because file systems may round sub-millisecond parts of a timestamp.
+    const newerTime = new Date(Math.floor(Date.now() / 1000) * 1000 + 60_000);
     await utimes(sourcePath, newerTime, newerTime);
     await processPhoto(sourcePath, directories);
-    assert.deepEqual(await outputTimes(), [newerTime.getTime(), newerTime.getTime()]);
+    assert.deepEqual(await outputTimes(), outputPaths.map(() => newerTime.getTime()));
 
     // An older replacement file (e.g. restored with `cp -p`) must also trigger a rebuild.
     const olderTime = new Date("2019-01-01T00:00:00Z");
     await utimes(sourcePath, olderTime, olderTime);
     await processPhoto(sourcePath, directories);
-    assert.deepEqual(await outputTimes(), [olderTime.getTime(), olderTime.getTime()]);
+    assert.deepEqual(await outputTimes(), outputPaths.map(() => olderTime.getTime()));
   });
 
   it("reuses outputs while the source is unchanged", async () => {
     const sourcePath = await writeCameraJpeg("a.jpg");
     const first = await processPhoto(sourcePath, directories);
     assert.ok(!("skipped" in first));
-    const outputPaths = [first.fullImagePath, first.thumbnail.path];
+    const outputPaths = [first.fullImagePath, ...first.thumbnails.map(({ path }) => path)];
     // Rebuilds replace the file, so its inode would change.
     const inodes = () => Promise.all(outputPaths.map(async (path) => (await stat(path)).ino));
 

@@ -1,8 +1,9 @@
-export type GalleryPhoto = {
-  src: string;
-  width: number;
-  height: number;
-  thumbnail: { src: string; width: number; height: number };
+export type GalleryImage = { src: string; width: number; height: number };
+
+export type GalleryPhoto = GalleryImage & {
+  // A tiny blurred preview, shown as a data URI while the thumbnail loads.
+  placeholder: string;
+  thumbnails: GalleryImage[]; // smallest first
 };
 
 export type GalleryAlbum = {

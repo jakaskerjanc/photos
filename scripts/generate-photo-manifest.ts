@@ -70,13 +70,16 @@ async function generateManifest() {
       return;
     }
 
-    expectedDerivativeFiles.add(posix.join(slug, basename(result.thumbnail.path)));
+    for (const thumbnail of result.thumbnails) {
+      expectedDerivativeFiles.add(posix.join(slug, basename(thumbnail.path)));
+    }
     expectedFullImageFiles.add(posix.join(slug, basename(result.fullImagePath)));
     manifestAlbums[albumIndex].photos.push({
       src: urlFor(result.fullImagePath),
       width: result.width,
       height: result.height,
-      thumbnail: { src: urlFor(result.thumbnail.path), width: result.thumbnail.width, height: result.thumbnail.height },
+      placeholder: result.placeholder,
+      thumbnails: result.thumbnails.map(({ path, width, height }) => ({ src: urlFor(path), width, height })),
     });
   });
 

@@ -4,7 +4,8 @@ import { basename, dirname, extname, join } from "node:path";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
 
-const thumbnailWidth = 640;
+// 640px covers a grid photo on a normal screen; 960px keeps landscape photos sharp on 2x screens.
+const thumbnailWidths = [640, 960];
 const panoramaAspectRatio = 2;
 const panoramaThumbnailHeight = 960;
 const maxPanoramaThumbnailWidth = 6144;
@@ -13,24 +14,32 @@ const thumbnailQuality = 76;
 // higher quality so the second round of compression doesn't smear the detail that is left.
 const compressedSourceBitsPerPixel = 0.3;
 const compressedSourceThumbnailQuality = 90;
+// A few hundred bytes each, so every photo's preview can be inlined in the manifest.
+const placeholderSize = 12;
+const placeholderQuality = 40;
 
 export type PhotoOutputDirectories = { derivatives: string; fullImages: string };
+
+export type ProcessedThumbnail = { path: string; width: number; height: number };
 
 export type ProcessedPhoto = {
   width: number;
   height: number;
   fullImagePath: string;
-  thumbnail: { path: string; width: number; height: number };
+  placeholder: string;
+  thumbnails: ProcessedThumbnail[]; // smallest first
 };
 
-export function thumbnailSize(width: number, height: number) {
+// Panoramas get a single thumbnail that is already large enough for any screen.
+// Small photos are never enlarged, so they may end up with only one size.
+export function thumbnailSizes(width: number, height: number) {
   const aspectRatio = width / height;
-  const targetWidth =
+  const targetWidths =
     aspectRatio >= panoramaAspectRatio
-      ? Math.min(maxPanoramaThumbnailWidth, Math.round(aspectRatio * panoramaThumbnailHeight))
-      : thumbnailWidth;
-  const thumbnailPixelWidth = Math.min(width, targetWidth);
-  return { width: thumbnailPixelWidth, height: Math.round((height * thumbnailPixelWidth) / width) };
+      ? [Math.min(maxPanoramaThumbnailWidth, Math.round(aspectRatio * panoramaThumbnailHeight))]
+      : thumbnailWidths;
+  const pixelWidths = [...new Set(targetWidths.map((targetWidth) => Math.min(width, targetWidth)))];
+  return pixelWidths.map((pixelWidth) => ({ width: pixelWidth, height: Math.round((height * pixelWidth) / width) }));
 }
 
 export function thumbnailQualityFor(fileBytes: number, width: number, height: number) {
@@ -68,6 +77,15 @@ async function stripMetadata(path: string) {
   });
 }
 
+// Read from the smallest thumbnail rather than the source: it is fast and is already rotated.
+async function placeholderFor(thumbnailPath: string) {
+  const preview = await sharp(thumbnailPath)
+    .resize(placeholderSize, placeholderSize, { fit: "inside" })
+    .webp({ quality: placeholderQuality })
+    .toBuffer();
+  return `data:image/webp;base64,${preview.toString("base64")}`;
+}
+
 async function readDisplayedSize(sourcePath: string) {
   const { autoOrient } = await sharp(sourcePath).metadata();
   if (!(autoOrient.width > 0 && autoOrient.height > 0)) {
@@ -89,20 +107,22 @@ export async function processPhoto(
 
   const source = await stat(sourcePath);
   const fileName = basename(sourcePath);
-  const thumbnail = thumbnailSize(size.width, size.height);
-  const thumbnailPath = join(
-    directories.derivatives,
-    `${fileName.slice(0, -extname(fileName).length)}-${thumbnail.width}w.webp`,
-  );
+  const baseName = fileName.slice(0, -extname(fileName).length);
+  const thumbnails = thumbnailSizes(size.width, size.height).map((thumbnail) => ({
+    path: join(directories.derivatives, `${baseName}-${thumbnail.width}w.webp`),
+    ...thumbnail,
+  }));
   const fullImagePath = join(directories.fullImages, fileName);
 
-  if (!(await outputIsCurrent(source, thumbnailPath))) {
-    await writeOutput(source, thumbnailPath, (temporaryPath) =>
-      sharp(sourcePath, { autoOrient: true })
-        .resize({ width: thumbnail.width, withoutEnlargement: true })
-        .webp({ quality: thumbnailQualityFor(source.size, size.width, size.height) })
-        .toFile(temporaryPath),
-    );
+  for (const thumbnail of thumbnails) {
+    if (!(await outputIsCurrent(source, thumbnail.path))) {
+      await writeOutput(source, thumbnail.path, (temporaryPath) =>
+        sharp(sourcePath, { autoOrient: true })
+          .resize({ width: thumbnail.width, withoutEnlargement: true })
+          .webp({ quality: thumbnailQualityFor(source.size, size.width, size.height) })
+          .toFile(temporaryPath),
+      );
+    }
   }
 
   if (!(await outputIsCurrent(source, fullImagePath))) {
@@ -112,5 +132,5 @@ export async function processPhoto(
     });
   }
 
-  return { ...size, fullImagePath, thumbnail: { path: thumbnailPath, ...thumbnail } };
+  return { ...size, fullImagePath, placeholder: await placeholderFor(thumbnails[0].path), thumbnails };
 }

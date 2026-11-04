@@ -93,14 +93,132 @@ a:focus-visible {
   width: 100%;
 }
 
+.gallery .react-photo-album--photo {
+  background-position: center;
+  background-size: cover;
+}
+
+/* Hidden until loaded, so the blurred preview behind it shows instead of a half-decoded image. */
 .gallery img {
   display: block;
   cursor: zoom-in;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.gallery img[data-loaded] {
+  opacity: 1;
+}
+
+.gallery img[data-loaded]:hover {
+  opacity: 0.86;
+  transition-duration: 180ms;
+}
+
+/* Lightbox */
+
+.yarl__root {
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.lightbox-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 20px 16px;
+  color: #f2f2f2;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+.lightbox-album {
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lightbox-counter {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+}
+
+.lightbox-with-thumbnails {
+  --lightbox-thumbnails-height: 76px;
+}
+
+/* Leave room below the photo for the thumbnail strip. */
+.lightbox-with-thumbnails .yarl__carousel {
+  align-self: flex-start;
+  height: calc(100% - var(--lightbox-thumbnails-height));
+}
+
+.lightbox-with-thumbnails .yarl__navigation_prev,
+.lightbox-with-thumbnails .yarl__navigation_next {
+  margin-top: calc(var(--lightbox-thumbnails-height) / -2);
+}
+
+.lightbox-thumbnails {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  gap: 4px;
+  height: var(--lightbox-thumbnails-height);
+  padding: 8px 16px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.lightbox-thumbnails::-webkit-scrollbar {
+  display: none;
+}
+
+/* Centers the strip when it's narrower than the screen, without clipping it when it's wider. */
+.lightbox-thumbnails button:first-child {
+  margin-left: auto;
+}
+
+.lightbox-thumbnails button:last-child {
+  margin-right: auto;
+}
+
+.lightbox-thumbnails button {
+  flex: none;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: #1a1a1a;
+  cursor: pointer;
+  opacity: 0.45;
   transition: opacity 180ms ease;
 }
 
-.gallery img:hover {
-  opacity: 0.86;
+.lightbox-thumbnails button:hover,
+.lightbox-thumbnails button[aria-current] {
+  opacity: 1;
+}
+
+.lightbox-thumbnails button[aria-current] {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+
+.lightbox-thumbnails img {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+/* Keyboard and swipe already change photos; the arrows are for mouse users only. */
+@media (hover: none) {
+  .yarl__navigation_prev,
+  .yarl__navigation_next {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
