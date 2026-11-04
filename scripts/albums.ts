@@ -1,13 +1,16 @@
 import type { Dirent } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import type { GalleryAlbum } from "../src/gallery";
+import { albumNotesFileName, parseAlbumNotes } from "./album-notes";
 
 const supportedExtensions = new Set([".jpg", ".jpeg", ".png", ".webp", ".avif"]);
 
 export type AlbumSource = Pick<GalleryAlbum, "slug" | "title"> & {
   directory: string;
   fileNames: string[];
+  description?: string;
+  coverFileName?: string;
 };
 
 function compareNames(a: string, b: string) {
@@ -49,6 +52,26 @@ function assertUniqueBaseNames(fileNames: string[], location: string) {
   }
 }
 
+// Reads the folder's album.md, if any. Returns only the fields it sets, so albums without one stay unchanged.
+async function readAlbumNotes(directory: string, entries: Dirent[], fileNames: string[], location: string, warnings: string[]) {
+  if (!entries.some((entry) => entry.isFile() && entry.name === albumNotesFileName)) return {};
+
+  const notes = parseAlbumNotes(await readFile(join(directory, albumNotesFileName), "utf8"), `${albumNotesFileName} in ${location}`);
+  warnings.push(...notes.warnings);
+
+  const result: Pick<AlbumSource, "description" | "coverFileName"> = {};
+  if (notes.description) result.description = notes.description;
+  if (notes.cover) {
+    const coverFileName = fileNames.find((fileName) => fileName.toLowerCase() === notes.cover?.toLowerCase());
+    if (coverFileName) {
+      result.coverFileName = coverFileName;
+    } else {
+      warnings.push(`The cover "${notes.cover}" set in ${albumNotesFileName} in ${location} is not a photo there; using the first photo.`);
+    }
+  }
+  return result;
+}
+
 function visibleFolderNames(entries: Dirent[]) {
   return entries
     .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
@@ -64,7 +87,8 @@ export async function discoverAlbums(rootDirectory: string) {
   const looseFileNames = imageFileNames(entries);
   if (looseFileNames.length > 0) {
     assertUniqueBaseNames(looseFileNames, "the photos folder");
-    albums.push({ slug: "", title: null, directory: rootDirectory, fileNames: looseFileNames });
+    const notes = await readAlbumNotes(rootDirectory, entries, looseFileNames, "the photos folder", warnings);
+    albums.push({ slug: "", title: null, directory: rootDirectory, fileNames: looseFileNames, ...notes });
   }
 
   const folderNamesBySlug = new Map<string, string>();
@@ -99,7 +123,8 @@ export async function discoverAlbums(rootDirectory: string) {
     }
     folderNamesBySlug.set(slug, folderName);
 
-    albums.push({ slug, title, directory, fileNames });
+    const notes = await readAlbumNotes(directory, folderEntries, fileNames, `album folder "${folderName}"`, warnings);
+    albums.push({ slug, title, directory, fileNames, ...notes });
   }
 
   return { albums, warnings };

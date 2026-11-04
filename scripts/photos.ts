@@ -3,6 +3,7 @@ import { copyFile, rename, rm, stat, utimes } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
+import { type CaptureDate, captureDate, exposureDetails } from "./exif";
 
 // 640px covers a grid photo on a normal screen; 960px keeps landscape photos sharp on 2x screens.
 const thumbnailWidths = [640, 960];
@@ -28,6 +29,8 @@ export type ProcessedPhoto = {
   fullImagePath: string;
   placeholder: string;
   thumbnails: ProcessedThumbnail[]; // smallest first
+  taken?: CaptureDate;
+  exposure?: string; // camera and settings, e.g. "Sony α6700 · 16mm · f/8 · 1/250 s · ISO 100"
 };
 
 // Panoramas get a single thumbnail that is already large enough for any screen.
@@ -86,6 +89,16 @@ async function placeholderFor(thumbnailPath: string) {
   return `data:image/webp;base64,${preview.toString("base64")}`;
 }
 
+// Read from the source, before the published copy is stripped. A file exiftool can't read just has no details.
+async function readDetails(sourcePath: string) {
+  try {
+    const tags = await exiftool.read(sourcePath);
+    return { taken: captureDate(tags), exposure: exposureDetails(tags) };
+  } catch {
+    return {};
+  }
+}
+
 async function readDisplayedSize(sourcePath: string) {
   const { autoOrient } = await sharp(sourcePath).metadata();
   if (!(autoOrient.width > 0 && autoOrient.height > 0)) {
@@ -132,5 +145,13 @@ export async function processPhoto(
     });
   }
 
-  return { ...size, fullImagePath, placeholder: await placeholderFor(thumbnails[0].path), thumbnails };
+  const { taken, exposure } = await readDetails(sourcePath);
+  return {
+    ...size,
+    fullImagePath,
+    placeholder: await placeholderFor(thumbnails[0].path),
+    thumbnails,
+    ...(taken && { taken }),
+    ...(exposure && { exposure }),
+  };
 }

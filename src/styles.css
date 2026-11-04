@@ -129,10 +129,94 @@ a:focus-visible {
 
 .album-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
   padding: 48px 8px 12px;
+}
+
+.album-description {
+  display: grid;
+  flex-basis: 100%;
+  gap: 8px;
+  max-width: 62ch;
+}
+
+.album-description p {
+  margin: 0;
+  color: #aaa;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* Album covers, between the intro and the first album */
+
+.album-covers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 40vw), 1fr));
+  gap: 4px;
+  padding-top: 28px;
+}
+
+.album-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  background-position: center;
+  background-size: cover;
+  color: #f2f2f2;
+  text-decoration: none;
+}
+
+.album-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 400ms ease, transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.album-cover img[data-loaded] {
+  opacity: 1;
+}
+
+.album-cover:hover img {
+  transform: scale(1.035);
+}
+
+/* Darkens the bottom so the title reads on bright photos. */
+.album-cover::after {
+  content: "";
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.72));
+}
+
+.album-cover-text {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  left: 14px;
+  z-index: 1;
+  display: grid;
+  gap: 3px;
+}
+
+.album-cover-title {
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.album-cover-meta {
+  color: #bbb;
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
 }
 
 
@@ -169,7 +253,7 @@ a:focus-visible {
   display: block;
   cursor: zoom-in;
   opacity: 0;
-  transition: opacity 400ms ease;
+  transition: opacity 400ms ease, filter 180ms ease;
 }
 
 .gallery img[data-loaded] {
@@ -177,8 +261,34 @@ a:focus-visible {
 }
 
 .gallery img[data-loaded]:hover {
-  opacity: 0.86;
-  transition-duration: 180ms;
+  filter: brightness(1.08);
+}
+
+/* A panorama is its own photo album component; keep the usual gap around it. */
+.gallery + .gallery {
+  margin-top: 4px;
+}
+
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 64px;
+  padding: 24px 12px 32px;
+  border-top: 1px solid #1c1c1c;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.site-footer a {
+  margin-left: auto;
+  color: #999;
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  color: #fff;
 }
 
 /* Lightbox */
@@ -191,13 +301,25 @@ a:focus-visible {
   position: absolute;
   top: 0;
   left: 0;
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 20px 16px;
+  display: grid;
+  gap: 6px;
+  max-width: calc(100% - 200px);
+  padding: 20px 16px 0;
   color: #f2f2f2;
   font-size: 0.8rem;
   pointer-events: none;
+}
+
+.lightbox-position > div:first-child {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.lightbox-details {
+  color: #888;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .lightbox-album {
@@ -211,19 +333,25 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.yarl__root {
+  --lightbox-top-height: 64px;
+  --lightbox-bottom-height: 0px;
+}
+
 .lightbox-with-thumbnails {
   --lightbox-bottom-height: 76px;
 }
 
-/* Leave room below the photo for the thumbnail strip. */
-.lightbox-with-thumbnails .yarl__carousel {
+/* Keep the photo clear of the album, counter and details above it and the thumbnail strip below it. */
+.yarl__root .yarl__carousel {
   align-self: flex-start;
-  height: calc(100% - var(--lightbox-bottom-height));
+  height: calc(100% - var(--lightbox-top-height) - var(--lightbox-bottom-height));
+  margin-top: var(--lightbox-top-height);
 }
 
-.lightbox-with-thumbnails .yarl__navigation_prev,
-.lightbox-with-thumbnails .yarl__navigation_next {
-  margin-top: calc(var(--lightbox-bottom-height) / -2);
+.yarl__root .yarl__navigation_prev,
+.yarl__root .yarl__navigation_next {
+  margin-top: calc((var(--lightbox-top-height) - var(--lightbox-bottom-height)) / 2);
 }
 
 .lightbox-thumbnails {
@@ -329,9 +457,8 @@ a:focus-visible {
     display: none;
   }
 
-  .yarl__root .yarl__carousel {
-    align-self: flex-start;
-    height: calc(100% - var(--lightbox-bottom-height));
+  .lightbox-position {
+    max-width: 100%;
   }
 
   .yarl__toolbar {
@@ -358,7 +485,8 @@ a:focus-visible {
     scroll-behavior: auto;
   }
 
-  .gallery img {
+  .gallery img,
+  .album-cover img {
     transition: none;
   }
 }

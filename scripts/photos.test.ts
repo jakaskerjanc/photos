@@ -80,7 +80,11 @@ describe("processPhoto", () => {
     await sharp({ create: { width: 1200, height: 800, channels: 3, background: "red" } })
       .withIccProfile("p3")
       .withMetadata({ orientation: 6 })
-      .withExif({ IFD3: { GPSLatitudeRef: "N", GPSLatitude: "46/1 22/1 0/1" } })
+      .withExif({
+        IFD0: { Make: "SONY", Model: "ILCE-6700" },
+        IFD2: { DateTimeOriginal: "2026:08:06 18:39:07" },
+        IFD3: { GPSLatitudeRef: "N", GPSLatitude: "46/1 22/1 0/1" },
+      })
       .jpeg()
       .toFile(path);
     return path;
@@ -110,6 +114,14 @@ describe("processPhoto", () => {
     assert.equal(fullImageTags.GPSLatitude, undefined);
     assert.equal(fullImageTags.Orientation, 6);
     assert.ok(fullImageTags.ProfileDescription, "full image should keep its color profile");
+  });
+
+  it("reads the capture date and camera from the source", async () => {
+    const result = await processPhoto(await writeCameraJpeg("a.jpg"), directories);
+    assert.ok(!("skipped" in result));
+
+    assert.deepEqual(result.taken, { year: 2026, month: 8, day: 6 });
+    assert.equal(result.exposure, "Sony α6700");
   });
 
   it("creates a tiny rotated placeholder preview", async () => {
