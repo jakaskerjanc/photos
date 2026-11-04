@@ -125,7 +125,8 @@ describe("processPhoto", () => {
     const outputPaths = [first.fullImagePath, first.thumbnail.path];
     const outputTimes = () => Promise.all(outputPaths.map(async (path) => (await stat(path)).mtimeMs));
 
-    const newerTime = new Date(Date.now() + 60_000);
+    // Whole seconds, because file systems may round sub-millisecond parts of a timestamp.
+    const newerTime = new Date(Math.floor(Date.now() / 1000) * 1000 + 60_000);
     await utimes(sourcePath, newerTime, newerTime);
     await processPhoto(sourcePath, directories);
     assert.deepEqual(await outputTimes(), [newerTime.getTime(), newerTime.getTime()]);
