@@ -180,7 +180,7 @@ function LightboxPosition({ album }: { album: (typeof galleryAlbums)[number] }) 
   return (
     <div className="lightbox-position">
       <div>
-        {album.heading !== null && <span className="lightbox-album">{album.heading}</span>}
+        {album.title !== null && <span className="lightbox-album">{album.title}</span>}
         <span className="lightbox-counter">
           {currentIndex + 1} / {album.photos.length}
         </span>
