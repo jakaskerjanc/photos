@@ -59,7 +59,6 @@ const galleryAlbums = albums.map((album) => {
   };
 });
 const titledAlbums = galleryAlbums.filter((album) => album.title !== null);
-const photoCount = galleryAlbums.reduce((total, album) => total + album.photos.length, 0);
 
 // Publishes the sticky header's height as --header-height (used to offset anchor jumps) and returns
 // the album whose section is under the header. Short albums at the end can't scroll up to the header,
@@ -181,7 +180,7 @@ function LightboxPosition({ album }: { album: (typeof galleryAlbums)[number] }) 
   return (
     <div className="lightbox-position">
       <div>
-        {album.heading !== null && <span className="lightbox-album">{album.heading}</span>}
+        {album.title !== null && <span className="lightbox-album">{album.title}</span>}
         <span className="lightbox-counter">
           {currentIndex + 1} / {album.photos.length}
         </span>
@@ -252,14 +251,9 @@ export function App() {
       </header>
 
       <main className="gallery-shell">
-        {(site.intro || titledAlbums.length > 0) && (
+        {site.intro && (
           <div className="site-intro">
-            {site.intro && <p>{site.intro}</p>}
-            {titledAlbums.length > 0 && (
-              <span className="site-summary">
-                {plural(photoCount, "photo")} · {plural(titledAlbums.length, "album")}
-              </span>
-            )}
+            <p>{site.intro}</p>
           </div>
         )}
 

@@ -121,12 +121,6 @@ a:focus-visible {
   line-height: 1.55;
 }
 
-.site-summary {
-  color: #777;
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
-}
-
 .album-header {
   display: flex;
   flex-wrap: wrap;
