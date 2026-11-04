@@ -15,6 +15,8 @@ The build automatically scans that folder and writes the gallery manifest. It ge
 
 Published full-size photos have their metadata removed (camera details, GPS position, captions), keeping only the color profile and rotation needed to display them correctly.
 
+The manifest is written to `src/generated/photos.ts`. It is not committed, because it is rebuilt from the photos on every `pnpm dev` and `pnpm build`, and the tiny previews inside it can differ slightly between machines. Run `pnpm dev` (or `pnpm generate:photos`) once after cloning so your editor can find it.
+
 Generated files are reused until their source photo's modification time changes. After changing thumbnail settings in `scripts/photos.ts`, delete `public/photos/derivatives` to rebuild all thumbnails.
 
 Photos are sorted by filename, so names such as `001.jpg`, `002.jpg`, and `003.jpg` can be used to control the order.

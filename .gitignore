@@ -3,3 +3,4 @@ dist/
 public/photos/derivatives/
 public/photos/full/
 .DS_Store
+src/generated/
