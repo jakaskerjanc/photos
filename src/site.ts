@@ -2,6 +2,6 @@
 // under it; an empty intro hides the line. With an author set, the footer shows "© <year> <author>".
 export const site = {
   title: "Photographs",
-  intro: "Photographs from the Julian Alps, the Hohe Tauern and Iceland.",
+  intro: "",
   author: "",
 };
