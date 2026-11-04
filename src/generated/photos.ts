@@ -4,6 +4,34 @@ export type { GalleryAlbum, GalleryPhoto } from "../gallery";
 
 export const albums: GalleryAlbum[] = [
   {
+    slug: "",
+    title: null,
+    photos: [
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC_0181.avif`, width: 5000, height: 4000, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC_0181-640w.webp`, width: 640, height: 512 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC_0249.avif`, width: 4000, height: 3200, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC_0249-640w.webp`, width: 640, height: 512 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC00989.avif`, width: 1691, height: 3006, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC00989-640w.webp`, width: 640, height: 1138 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC00992.avif`, width: 2322, height: 4128, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC00992-640w.webp`, width: 640, height: 1138 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC02536.avif`, width: 2701, height: 4052, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC02536-640w.webp`, width: 640, height: 960 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC02717.avif`, width: 5733, height: 3571, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC02717-640w.webp`, width: 640, height: 399 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/DSC02839.avif`, width: 3363, height: 5045, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/DSC02839-640w.webp`, width: 640, height: 960 } },
+    ],
+  },
+  {
+    slug: "bovski-gamsovec",
+    title: "Bovški Gamsovec",
+    photos: [
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02577.avif`, width: 4128, height: 6192, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02577-640w.webp`, width: 640, height: 960 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02584.avif`, width: 6192, height: 3870, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02584-640w.webp`, width: 640, height: 400 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02594.avif`, width: 5300, height: 3313, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02594-640w.webp`, width: 640, height: 400 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02598.avif`, width: 2562, height: 3843, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02598-640w.webp`, width: 640, height: 960 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02607.avif`, width: 3162, height: 3953, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02607-640w.webp`, width: 640, height: 800 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02608.avif`, width: 5160, height: 3440, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02608-640w.webp`, width: 640, height: 427 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02621.avif`, width: 2862, height: 4293, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02621-640w.webp`, width: 640, height: 960 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02629.avif`, width: 2544, height: 3816, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02629-640w.webp`, width: 640, height: 960 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/bovski-gamsovec/DSC02632.avif`, width: 4128, height: 5160, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/bovski-gamsovec/DSC02632-640w.webp`, width: 640, height: 800 } },
+    ],
+  },
+  {
     slug: "iceland",
     title: "Iceland",
     photos: [
@@ -58,6 +86,27 @@ export const albums: GalleryAlbum[] = [
       { src: `${import.meta.env.BASE_URL}photos/full/iceland/DSC02493.avif`, width: 6192, height: 3870, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/iceland/DSC02493-640w.webp`, width: 640, height: 400 } },
       { src: `${import.meta.env.BASE_URL}photos/full/iceland/DSC02497.avif`, width: 6174, height: 4116, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/iceland/DSC02497-640w.webp`, width: 640, height: 427 } },
       { src: `${import.meta.env.BASE_URL}photos/full/iceland/DSC02515.avif`, width: 3103, height: 3885, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/iceland/DSC02515-640w.webp`, width: 640, height: 801 } },
+    ],
+  },
+  {
+    slug: "sauleck",
+    title: "Säuleck",
+    photos: [
+      { src: `${import.meta.env.BASE_URL}photos/full/sauleck/DSC02645.avif`, width: 6090, height: 3806, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/sauleck/DSC02645-640w.webp`, width: 640, height: 400 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/sauleck/DSC02656.avif`, width: 6192, height: 3870, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/sauleck/DSC02656-640w.webp`, width: 640, height: 400 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/sauleck/DSC02660.avif`, width: 6192, height: 3870, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/sauleck/DSC02660-640w.webp`, width: 640, height: 400 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/sauleck/DSC02688.avif`, width: 6192, height: 3870, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/sauleck/DSC02688-640w.webp`, width: 640, height: 400 } },
+    ],
+  },
+  {
+    slug: "triglav",
+    title: "Triglav",
+    photos: [
+      { src: `${import.meta.env.BASE_URL}photos/full/triglav/DSC02741.avif`, width: 2645, height: 3967, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/triglav/DSC02741-640w.webp`, width: 640, height: 960 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/triglav/DSC02755.avif`, width: 3205, height: 3995, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/triglav/DSC02755-640w.webp`, width: 640, height: 798 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/triglav/DSC02784.avif`, width: 4647, height: 3145, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/triglav/DSC02784-640w.webp`, width: 640, height: 433 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/triglav/DSC02809.avif`, width: 6192, height: 4128, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/triglav/DSC02809-640w.webp`, width: 640, height: 427 } },
+      { src: `${import.meta.env.BASE_URL}photos/full/triglav/DSC02819.avif`, width: 1196, height: 797, thumbnail: { src: `${import.meta.env.BASE_URL}photos/derivatives/triglav/DSC02819-640w.webp`, width: 640, height: 426 } },
     ],
   },
 ];
