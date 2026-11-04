@@ -32,11 +32,15 @@ photos/
 ```
 
 - Albums are sorted by folder name. A leading number of up to three digits followed by a space, `-` or `_` controls the order and is hidden from the title, so `01 Iceland 2025` is shown as **Iceland 2025**. Longer numbers such as years are kept: `2024 Norway` stays **2024 Norway**.
-- Each album is linked from the index at the top of the page and has its own URL anchor, e.g. `#iceland-2025`.
-- Photos placed directly in `photos` (not in a subfolder) are shown first, without a title.
+- Each album is linked from the index in the page header and has its own URL anchor, e.g. `#iceland-2025`. The header stays at the top while scrolling and marks the album you're in.
+- Photos placed directly in `photos` (not in a subfolder) are shown first, under the heading **Selected** (no heading if there are no albums).
 - File names only need to be unique within an album. Two photos whose names differ only by extension or letter case (e.g. `sunset.jpg` and `Sunset.png`) stop the build with an error, because their thumbnails would share a name.
 - Albums can't be nested; subfolders inside an album are ignored with a warning.
 - Two folders whose titles produce the same URL name (e.g. `Škocjan` and `Skocjan`) stop the build with an error. Rename one of them.
+
+## Site name and intro
+
+The name in the page header and the line under it are set in [`src/site.ts`](./src/site.ts). Leave `intro` empty to hide the line.
 
 ## Run locally
 

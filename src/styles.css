@@ -39,23 +39,92 @@ a:focus-visible {
   padding: 4px;
 }
 
+/* Header: site name and album index, pinned to the top */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px 24px;
+  min-height: 52px;
+  padding: 0 12px;
+  border-bottom: 1px solid #1c1c1c;
+  background: rgb(10 10 10 / 0.84);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.site-title {
+  flex-shrink: 0;
+  color: #f2f2f2;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .album-index {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px 20px;
-  padding: 16px 8px 8px;
+  gap: 20px;
+  min-width: 0;
+  margin-left: auto;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.album-index::-webkit-scrollbar {
+  display: none;
 }
 
 .album-index a {
+  flex-shrink: 0;
+  padding: 4px 0;
+  border-bottom: 1px solid transparent;
   color: #888;
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
   text-decoration: none;
   text-transform: uppercase;
+  transition: color 180ms ease, border-color 180ms ease;
 }
 
-.album-index a:hover {
+.album-index a:hover,
+.album-index a[aria-current] {
   color: #fff;
+}
+
+.album-index a[aria-current] {
+  border-bottom-color: #fff;
+}
+
+.album-index-count {
+  margin-left: 5px;
+  color: #666;
+  font-size: 0.65rem;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  vertical-align: super;
+}
+
+.site-intro {
+  display: grid;
+  gap: 6px;
+  padding: 36px 8px 4px;
+}
+
+.site-intro p {
+  max-width: 52ch;
+  margin: 0;
+  color: #bbb;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.site-summary {
+  color: #777;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .album-header {
@@ -66,9 +135,6 @@ a:focus-visible {
   padding: 48px 8px 12px;
 }
 
-.album:first-of-type .album-header {
-  padding-top: 16px;
-}
 
 .album-title {
   min-width: 0;
@@ -79,7 +145,7 @@ a:focus-visible {
   letter-spacing: 0.16em;
   overflow-wrap: anywhere;
   text-transform: uppercase;
-  scroll-margin-top: 16px;
+  scroll-margin-top: calc(var(--header-height, 52px) + 16px);
 }
 
 .album-count {
@@ -146,18 +212,18 @@ a:focus-visible {
 }
 
 .lightbox-with-thumbnails {
-  --lightbox-thumbnails-height: 76px;
+  --lightbox-bottom-height: 76px;
 }
 
 /* Leave room below the photo for the thumbnail strip. */
 .lightbox-with-thumbnails .yarl__carousel {
   align-self: flex-start;
-  height: calc(100% - var(--lightbox-thumbnails-height));
+  height: calc(100% - var(--lightbox-bottom-height));
 }
 
 .lightbox-with-thumbnails .yarl__navigation_prev,
 .lightbox-with-thumbnails .yarl__navigation_next {
-  margin-top: calc(var(--lightbox-thumbnails-height) / -2);
+  margin-top: calc(var(--lightbox-bottom-height) / -2);
 }
 
 .lightbox-thumbnails {
@@ -167,7 +233,7 @@ a:focus-visible {
   left: 0;
   display: flex;
   gap: 4px;
-  height: var(--lightbox-thumbnails-height);
+  height: var(--lightbox-bottom-height);
   padding: 8px 16px 16px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -211,6 +277,72 @@ a:focus-visible {
   display: block;
   height: 100%;
   width: auto;
+}
+
+/* Phones: album chips instead of a text index, and lightbox tools at the bottom within thumb reach.
+   The thumbnail strip is hidden there: swiping is quicker than aiming at 48px thumbnails. */
+@media (max-width: 600px) {
+  .site-header {
+    flex-wrap: wrap;
+    padding-top: 12px;
+  }
+
+  .site-title {
+    width: 100%;
+  }
+
+  .album-index {
+    gap: 6px;
+    width: calc(100% + 24px);
+    margin: 0 -12px;
+    padding: 0 12px 10px;
+  }
+
+  .album-index a {
+    padding: 6px 11px;
+    border: 1px solid #2a2a2a;
+    border-radius: 999px;
+    color: #bbb;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+
+  .album-index a[aria-current] {
+    border-color: #f2f2f2;
+    background: #f2f2f2;
+    color: #0a0a0a;
+  }
+
+  .album-index a[aria-current] .album-index-count {
+    color: #555;
+  }
+
+  .album-index-count {
+    vertical-align: baseline;
+  }
+
+  .yarl__root {
+    --lightbox-bottom-height: 64px;
+  }
+
+  .lightbox-thumbnails {
+    display: none;
+  }
+
+  .yarl__root .yarl__carousel {
+    align-self: flex-start;
+    height: calc(100% - var(--lightbox-bottom-height));
+  }
+
+  .yarl__toolbar {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    justify-content: space-around;
+    height: var(--lightbox-bottom-height);
+    padding: 4px 8px 12px;
+    border-top: 1px solid #1c1c1c;
+  }
 }
 
 /* Keyboard and swipe already change photos; the arrows are for mouse users only. */
