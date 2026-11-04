@@ -2,5 +2,5 @@
 // an empty intro hides the line.
 export const site = {
   title: "Photographs",
-  intro: "Photographs from the Julian Alps, the Hohe Tauern and Iceland.",
+  intro: "",
 };
