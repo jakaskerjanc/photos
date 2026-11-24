@@ -97,14 +97,16 @@ async function generateManifest() {
     // Counted after skipped photos are dropped, so the index matches the photos array.
     if (isCover) album.cover = album.photos.length;
     if (result.taken) albumDates[albumIndex].push(result.taken);
-    const details = [result.taken && formatDate(result.taken), result.exposure].filter(Boolean).join(" · ");
     album.photos.push({
       src: urlFor(result.fullImagePath),
       width: result.width,
       height: result.height,
       placeholder: result.placeholder,
       thumbnails: result.thumbnails.map(({ path, width, height }) => ({ src: urlFor(path), width, height })),
-      ...(details && { details }),
+      ...(result.taken && { taken: formatDate(result.taken) }),
+      ...(result.camera && { camera: result.camera }),
+      ...(result.settings && { settings: result.settings }),
+      file: result.file,
     });
   });
 

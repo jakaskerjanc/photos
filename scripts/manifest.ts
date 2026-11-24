@@ -12,13 +12,13 @@ function formatImage({ src, width, height }: GalleryImage) {
 }
 
 // Optional fields are left out when unset rather than written as undefined.
-function optional(name: string, value: string | number | undefined, separator: string) {
+function optional(name: string, value: string | number | string[] | undefined, separator: string) {
   return value === undefined ? "" : `${separator}${name}: ${JSON.stringify(value)}`;
 }
 
-function formatPhoto({ src, width, height, placeholder, thumbnails, details }: GalleryPhoto) {
+function formatPhoto({ src, width, height, placeholder, thumbnails, taken, camera, settings, file }: GalleryPhoto) {
   const thumbnailList = thumbnails.map((thumbnail) => `{ ${formatImage(thumbnail)} }`).join(", ");
-  return `      { ${formatImage({ src, width, height })}, placeholder: ${JSON.stringify(placeholder)}, thumbnails: [${thumbnailList}]${optional("details", details, ", ")} },`;
+  return `      { ${formatImage({ src, width, height })}, placeholder: ${JSON.stringify(placeholder)}, thumbnails: [${thumbnailList}]${optional("taken", taken, ", ")}${optional("camera", camera, ", ")}${optional("settings", settings, ", ")}, file: ${JSON.stringify(file)} },`;
 }
 
 function formatAlbum({ slug, title, photos, dates, description, cover }: GalleryAlbum) {

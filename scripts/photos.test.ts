@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { after, afterEach, beforeEach, describe, it } from "node:test";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
-import { processPhoto, thumbnailQualityFor, thumbnailSizes } from "./photos";
+import { fileDetails, formatFileSize, processPhoto, thumbnailQualityFor, thumbnailSizes } from "./photos";
 
 after(async () => {
   await exiftool.end();
@@ -55,6 +55,26 @@ describe("thumbnailQualityFor", () => {
   it("judges file size relative to resolution", () => {
     // The same 600 KB is a generous size for a 1200x800 image.
     assert.equal(thumbnailQualityFor(600_000, 1200, 800), 76);
+  });
+});
+
+describe("formatFileSize", () => {
+  it("uses decimal units with one decimal for megabytes", () => {
+    assert.equal(formatFileSize(512), "512 B");
+    assert.equal(formatFileSize(850_400), "850 KB");
+    assert.equal(formatFileSize(8_437_000), "8.4 MB");
+    assert.equal(formatFileSize(12_000_000), "12 MB");
+  });
+});
+
+describe("fileDetails", () => {
+  it("shows resolution, megapixels and file size", () => {
+    assert.deepEqual(fileDetails(6192, 4128, 8_437_000), ["6192 × 4128", "25.6 MP", "8.4 MB"]);
+    assert.deepEqual(fileDetails(4000, 3000, 3_000_000), ["4000 × 3000", "12 MP", "3 MB"]);
+  });
+
+  it("leaves megapixels out for images under one megapixel", () => {
+    assert.deepEqual(fileDetails(800, 600, 120_000), ["800 × 600", "120 KB"]);
   });
 });
 
@@ -121,7 +141,18 @@ describe("processPhoto", () => {
     assert.ok(!("skipped" in result));
 
     assert.deepEqual(result.taken, { year: 2026, month: 8, day: 6 });
-    assert.equal(result.exposure, "Sony α6700");
+    assert.equal(result.camera, "Sony α6700");
+    // The fixture records no exposure settings, so the field is left out rather than empty.
+    assert.equal(result.settings, undefined);
+  });
+
+  it("reports the displayed resolution and the published file's size", async () => {
+    const result = await processPhoto(await writeCameraJpeg("size.jpg"), directories);
+    assert.ok(!("skipped" in result));
+
+    const { size } = await stat(result.fullImagePath);
+    assert.deepEqual(result.file, fileDetails(800, 1200, size));
+    assert.equal(result.file[0], "800 × 1200");
   });
 
   it("creates a tiny rotated placeholder preview", async () => {

@@ -310,10 +310,46 @@ a:focus-visible {
   gap: 12px;
 }
 
-.lightbox-details {
+/* The camera and date, then a row of its settings and the file's resolution and size: each value spaced
+   apart rather than joined with dots, with the settings brighter than the file details after the divider. */
+.lightbox-capture,
+.lightbox-specs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 10px;
   color: #888;
   font-size: 0.75rem;
+}
+
+.lightbox-camera {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.lightbox-specs {
+  row-gap: 6px;
   font-variant-numeric: tabular-nums;
+}
+
+.lightbox-settings,
+.lightbox-file {
+  display: flex;
+  gap: 12px;
+}
+
+.lightbox-settings {
+  color: #b5b5b5;
+}
+
+.lightbox-file {
+  color: #757575;
+}
+
+.lightbox-settings + .lightbox-file {
+  margin-left: 2px;
+  padding-left: 12px;
+  border-left: 1px solid #3a3a3a;
 }
 
 .lightbox-album {
@@ -327,8 +363,9 @@ a:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+/* Room for the album and counter, the camera and date, and the settings and file details. */
 .yarl__root {
-  --lightbox-top-height: 64px;
+  --lightbox-top-height: 80px;
   --lightbox-bottom-height: 0px;
 }
 
@@ -443,8 +480,20 @@ a:focus-visible {
     vertical-align: baseline;
   }
 
+  /* The file details get a line of their own below the settings, which leaves no room for both. */
   .yarl__root {
+    --lightbox-top-height: 96px;
     --lightbox-bottom-height: 64px;
+  }
+
+  .lightbox-file {
+    flex-basis: 100%;
+  }
+
+  .lightbox-settings + .lightbox-file {
+    margin-left: 0;
+    padding-left: 0;
+    border-left: 0;
   }
 
   .lightbox-thumbnails {

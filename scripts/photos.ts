@@ -3,7 +3,7 @@ import { copyFile, rename, rm, stat, utimes } from "node:fs/promises";
 import { basename, dirname, extname, join } from "node:path";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
-import { type CaptureDate, captureDate, exposureDetails } from "./exif";
+import { type CaptureDate, cameraName, captureDate, exposureSettings } from "./exif";
 
 // 640px covers a grid photo on a normal screen; 960px keeps landscape photos sharp on 2x screens.
 const thumbnailWidths = [640, 960];
@@ -30,7 +30,9 @@ export type ProcessedPhoto = {
   placeholder: string;
   thumbnails: ProcessedThumbnail[]; // smallest first
   taken?: CaptureDate;
-  exposure?: string; // camera and settings, e.g. "Sony α6700 · 16mm · f/8 · 1/250 s · ISO 100"
+  camera?: string; // e.g. "Sony α6700"
+  settings?: string[]; // e.g. ["16mm", "f/8", "1/250 s", "ISO 100"]; never empty
+  file: string[]; // the published file's resolution and size, e.g. ["6192 × 4128", "25.6 MP", "8.4 MB"]
 };
 
 // Panoramas get a single thumbnail that is already large enough for any screen.
@@ -48,6 +50,25 @@ export function thumbnailSizes(width: number, height: number) {
 export function thumbnailQualityFor(fileBytes: number, width: number, height: number) {
   const bitsPerPixel = (fileBytes * 8) / (width * height);
   return bitsPerPixel < compressedSourceBitsPerPixel ? compressedSourceThumbnailQuality : thumbnailQuality;
+}
+
+function oneDecimal(value: number) {
+  return String(Math.round(value * 10) / 10);
+}
+
+// Sizes in decimal units (1 MB = 1,000,000 bytes), as file managers on macOS and most Linux desktops show them.
+export function formatFileSize(bytes: number) {
+  if (bytes < 1_000) return `${bytes} B`;
+  if (bytes < 1_000_000) return `${Math.round(bytes / 1_000)} KB`;
+  return `${oneDecimal(bytes / 1_000_000)} MB`;
+}
+
+// Megapixels are only worth showing for camera-sized images; "0.3 MP" says less than the dimensions do.
+export function fileDetails(width: number, height: number, bytes: number) {
+  const megapixels = (width * height) / 1_000_000;
+  const resolution = `${width} × ${height}`;
+  const size = formatFileSize(bytes);
+  return megapixels >= 1 ? [resolution, `${oneDecimal(megapixels)} MP`, size] : [resolution, size];
 }
 
 // Outputs carry their source's modification time, so any change to the source (newer or older) triggers a rebuild.
@@ -93,7 +114,7 @@ async function placeholderFor(thumbnailPath: string) {
 async function readDetails(sourcePath: string) {
   try {
     const tags = await exiftool.read(sourcePath);
-    return { taken: captureDate(tags), exposure: exposureDetails(tags) };
+    return { taken: captureDate(tags), camera: cameraName(tags.Make, tags.Model), settings: exposureSettings(tags) };
   } catch {
     return {};
   }
@@ -145,13 +166,17 @@ export async function processPhoto(
     });
   }
 
-  const { taken, exposure } = await readDetails(sourcePath);
+  const { taken, camera, settings } = await readDetails(sourcePath);
+  // Measured on the published copy, the file the lightbox's download button saves.
+  const fullImage = await stat(fullImagePath);
   return {
     ...size,
     fullImagePath,
     placeholder: await placeholderFor(thumbnails[0].path),
     thumbnails,
     ...(taken && { taken }),
-    ...(exposure && { exposure }),
+    ...(camera && { camera }),
+    ...(settings?.length && { settings }),
+    file: fileDetails(size.width, size.height, fullImage.size),
   };
 }
