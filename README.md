@@ -64,9 +64,19 @@ Two weeks driving the Ring Road in August.
 Both parts are optional. The description is plain text; leave a blank line between paragraphs. A cover that isn't a photo in the folder is ignored with a warning. An `album.md` directly in `photos` adds a description to the photos without an album.
 - Two folders whose titles produce the same URL name (e.g. `Škocjan` and `Skocjan`) stop the build with an error. Rename one of them.
 
-## Site name and intro
+## Site name, intro and link previews
 
-The name in the page header, the line under it and the author in the footer are set in [`src/site.ts`](./src/site.ts). The name is also the page title, and the intro is the page's description in search results and link previews. Without an intro, the description lists the albums instead (e.g. *Photos from Iceland and Triglav.*). Leave `intro` empty to hide the line, and `author` empty to leave the copyright line out of the footer.
+The name in the page header, the line under it and the author in the footer are set in [`src/site.ts`](./src/site.ts). Leave `intro` empty to hide the line, and `author` empty to leave the copyright line out of the footer. The name is also the page title.
+
+The same file sets what search results and link previews (in chat apps and social networks) show:
+
+- `description`: the text under the title. When it's empty, the intro is used, or else a list of the albums (e.g. *Photos from Iceland and Triglav.*), which stays up to date as albums are added.
+- `url`: the site's public address, e.g. `https://photos.jakas.si/` or `https://<user>.github.io/photos/`. Link previews need it for their image and address, so with `url` empty they show only the name and description.
+- `previewPhoto`: the photo shown in link previews, as its path inside `photos`, e.g. `Iceland/DSC01120.avif`. When it's empty, the first album's cover is used (or the first photo outside albums, if there are no albums). The build crops it to a 1200×630 JPEG without metadata, `public/photos/derivatives/link-preview.jpg`.
+
+Chat apps and social networks cache previews, so after changing these, paste the link into the [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) and choose *Scrape Again* to refresh it there.
+
+The browser tab icon is [`public/favicon.svg`](./public/favicon.svg), and [`public/apple-touch-icon.png`](./public/apple-touch-icon.png) (180×180) is the icon iPhones and iPads use when the site is added to the home screen.
 
 ## Run locally
 

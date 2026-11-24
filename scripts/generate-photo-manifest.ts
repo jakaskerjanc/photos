@@ -1,13 +1,17 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { availableParallelism } from "node:os";
 import { basename, join, posix, relative, sep } from "node:path";
 import { exiftool } from "exiftool-vendored";
 import type { GalleryAlbum } from "../src/gallery";
+import { site } from "../src/site";
 import { discoverAlbums } from "./albums";
 import { mapWithConcurrency } from "./concurrency";
 import { type CaptureDate, formatDate, formatDateRange } from "./exif";
+import { chooseLinkPreviewPhoto, linkPreviewAlt, linkPreviewFileName } from "./link-preview";
 import { formatManifest } from "./manifest";
-import { type PhotoOutputDirectories, processPhoto } from "./photos";
+import { linkPreviewSize, type PhotoOutputDirectories, processPhoto, writeLinkPreview } from "./photos";
+import type { LinkPreviewImage } from "./site-metadata";
 import { removeStaleFiles } from "./stale-files";
 
 const projectRoot = process.cwd();
@@ -17,6 +21,8 @@ const derivativesDirectory = join(publicDirectory, "photos", "derivatives");
 const fullImagesDirectory = join(publicDirectory, "photos", "full");
 const generatedDirectory = join(projectRoot, "src", "generated");
 const manifestPath = join(generatedDirectory, "photos.ts");
+// Read by the site-metadata plugin in vite.config.ts: the link preview image, or null without one.
+const linkPreviewInfoPath = join(generatedDirectory, "link-preview.json");
 
 type PhotoJob = {
   albumIndex: number;
@@ -36,6 +42,31 @@ function urlFor(filePath: string) {
 
 function plural(count: number, noun: string) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+async function generateLinkPreview(
+  albumSources: Awaited<ReturnType<typeof discoverAlbums>>["albums"],
+  jobs: PhotoJob[],
+  results: Awaited<ReturnType<typeof processPhoto>>[],
+): Promise<LinkPreviewImage | null> {
+  const warnings: string[] = [];
+  const photo = chooseLinkPreviewPhoto(albumSources, sourcePhotosDirectory, site.previewPhoto, warnings);
+  for (const warning of warnings) {
+    console.warn(warning);
+  }
+  if (!photo) return null;
+  // A photo that couldn't be read has already been reported and skipped.
+  const result = results[jobs.findIndex((job) => job.sourcePath === photo.sourcePath)];
+  if (!result || "skipped" in result) return null;
+
+  const outputPath = join(derivativesDirectory, linkPreviewFileName);
+  await writeLinkPreview(photo.sourcePath, outputPath);
+  return {
+    path: relative(publicDirectory, outputPath).split(sep).join("/"),
+    ...linkPreviewSize,
+    alt: linkPreviewAlt(site.title, photo.albumTitle),
+    version: createHash("sha256").update(await readFile(outputPath)).digest("hex").slice(0, 10),
+  };
 }
 
 async function generateManifest() {
@@ -117,12 +148,16 @@ async function generateManifest() {
 
   const nonEmptyAlbums = manifestAlbums.filter((album) => album.photos.length > 0);
 
+  const linkPreview = await generateLinkPreview(albumSources, jobs, results);
+  if (linkPreview) expectedDerivativeFiles.add(linkPreviewFileName);
+
   await Promise.all([
     removeStaleFiles(derivativesDirectory, expectedDerivativeFiles),
     removeStaleFiles(fullImagesDirectory, expectedFullImageFiles),
   ]);
 
   await writeFile(manifestPath, formatManifest(nonEmptyAlbums), "utf8");
+  await writeFile(linkPreviewInfoPath, `${JSON.stringify(linkPreview, null, 2)}\n`, "utf8");
   const photoCount = nonEmptyAlbums.reduce((total, album) => total + album.photos.length, 0);
   console.log(`Generated photo manifest with ${plural(photoCount, "photo")} in ${plural(nonEmptyAlbums.length, "album")}.`);
 }

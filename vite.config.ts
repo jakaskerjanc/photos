@@ -1,16 +1,24 @@
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import { discoverAlbums } from "./scripts/albums";
 import { siteDescription } from "./scripts/site-description";
+import { headTags, type LinkPreviewImage } from "./scripts/site-metadata";
 import { site } from "./src/site";
 
-function escapeHtml(text: string) {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+// Written by scripts/generate-photo-manifest.ts, which runs before Vite in `pnpm dev` and `pnpm build`.
+async function readLinkPreviewImage(): Promise<LinkPreviewImage | null> {
+  try {
+    return JSON.parse(await readFile(join(import.meta.dirname, "src", "generated", "link-preview.json"), "utf8"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw error;
+  }
 }
 
 // Fills the page title, description and link-preview tags from src/site.ts (and the album names, when
-// there is no intro), so search results and chat apps show the site's name and what is in it.
+// there is no description or intro), so search results and chat apps show the site's name and what is in it.
 function siteMetadata(): Plugin {
   return {
     name: "site-metadata",
@@ -18,17 +26,13 @@ function siteMetadata(): Plugin {
       // The manifest script has already reported any problems with the photos folder, so its warnings are not repeated.
       const { albums } = await discoverAlbums(join(import.meta.dirname, "photos"));
       const titles = albums.flatMap((album) => (album.title === null ? [] : [album.title]));
-      const description = escapeHtml(siteDescription(site.intro, titles));
-      const meta = [
-        `<meta name="description" content="${description}" />`,
-        `<meta property="og:type" content="website" />`,
-        `<meta property="og:title" content="${escapeHtml(site.title)}" />`,
-        `<meta property="og:description" content="${description}" />`,
-      ];
-      return html.replace(
-        /<title>.*<\/title>/,
-        [`<title>${escapeHtml(site.title)}</title>`, ...meta].join("\n    "),
-      );
+      const tags = headTags({
+        title: site.title,
+        description: siteDescription(site.description || site.intro, titles),
+        url: site.url,
+        image: await readLinkPreviewImage(),
+      });
+      return html.replace(/<title>.*<\/title>/, tags.join("\n    "));
     },
   };
 }

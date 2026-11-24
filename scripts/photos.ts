@@ -132,6 +132,21 @@ async function readDisplayedSize(sourcePath: string) {
   return autoOrient;
 }
 
+// The 1.91:1 size that Facebook, LinkedIn, X and chat apps show in link previews.
+export const linkPreviewSize = { width: 1200, height: 630 };
+
+// Cropped around the photo's centre. Like the thumbnails, it carries no metadata (no GPS position).
+export async function writeLinkPreview(sourcePath: string, outputPath: string) {
+  const source = await stat(sourcePath);
+  if (await outputIsCurrent(source, outputPath)) return;
+  await writeOutput(source, outputPath, (temporaryPath) =>
+    sharp(sourcePath, { autoOrient: true })
+      .resize(linkPreviewSize.width, linkPreviewSize.height, { fit: "cover" })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toFile(temporaryPath),
+  );
+}
+
 export async function processPhoto(
   sourcePath: string,
   directories: PhotoOutputDirectories,

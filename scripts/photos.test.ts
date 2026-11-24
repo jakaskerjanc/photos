@@ -5,7 +5,14 @@ import { join } from "node:path";
 import { after, afterEach, beforeEach, describe, it } from "node:test";
 import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
-import { fileDetails, formatFileSize, processPhoto, thumbnailQualityFor, thumbnailSizes } from "./photos";
+import {
+  fileDetails,
+  formatFileSize,
+  processPhoto,
+  thumbnailQualityFor,
+  thumbnailSizes,
+  writeLinkPreview,
+} from "./photos";
 
 after(async () => {
   await exiftool.end();
@@ -186,6 +193,31 @@ describe("processPhoto", () => {
 
     assert.deepEqual((await readdir(directories.derivatives)).sort(), ["a-320w.webp", "a-480w.webp", "a-640w.webp", "a-800w.webp"]);
     assert.deepEqual(await readdir(directories.fullImages), ["a.jpg"]);
+  });
+
+  it("writes a 1200x630 link preview without the source's metadata", async () => {
+    const outputPath = join(directories.derivatives, "link-preview.jpg");
+    await writeLinkPreview(await writeCameraJpeg("portrait.jpg"), outputPath);
+
+    const preview = await sharp(outputPath).metadata();
+    assert.deepEqual([preview.format, preview.width, preview.height], ["jpeg", 1200, 630]);
+    const tags = await exiftool.read(outputPath);
+    assert.equal(tags.GPSLatitude, undefined);
+    assert.equal(tags.Make, undefined);
+  });
+
+  it("rewrites the link preview only when its source changes", async () => {
+    const sourcePath = await writeCameraJpeg("a.jpg");
+    const outputPath = join(directories.derivatives, "link-preview.jpg");
+    await writeLinkPreview(sourcePath, outputPath);
+    const first = await stat(outputPath);
+
+    await writeLinkPreview(sourcePath, outputPath);
+    assert.equal((await stat(outputPath)).ino, first.ino);
+
+    await utimes(sourcePath, new Date(), new Date(Date.now() + 5_000));
+    await writeLinkPreview(sourcePath, outputPath);
+    assert.notEqual((await stat(outputPath)).mtimeMs, first.mtimeMs);
   });
 
   it("skips files that cannot be read as images", async () => {
