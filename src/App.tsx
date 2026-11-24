@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { RowsPhotoAlbum } from "react-photo-album";
-import Lightbox, { useLightboxState } from "yet-another-react-lightbox";
-import Download from "yet-another-react-lightbox/plugins/download";
-import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import { type GalleryImage, albums } from "./generated/photos";
 import { site } from "./site";
+
+// The lightbox is a large part of the page's code but only needed once a photo is opened, so it is a
+// separate download, fetched as soon as the visitor starts using the page (see App).
+const loadLightbox = () => import("./PhotoLightbox");
+const PhotoLightbox = lazy(loadLightbox);
 
 // Same threshold as the build script: wider photos get a panorama thumbnail, and here a row of their own.
 const panoramaAspectRatio = 2;
@@ -49,12 +51,16 @@ const galleryAlbums = albums.map((album) => {
     meta: [album.dates, plural(album.photos.length, "photo")].filter(Boolean).join(" · "),
     coverPhoto: album.photos[album.cover ?? 0],
     rowGroups: rowGroups(thumbnails),
-    slides: album.photos.map(({ src, width, height, thumbnails }, index) => ({
+    slides: album.photos.map(({ src, width, height, thumbnails, taken, camera, settings, file }, index) => ({
       src,
       width,
       height,
       alt: alt(index),
       thumbnail: thumbnails[0].src,
+      taken,
+      camera,
+      settings,
+      file,
     })),
   };
 });
@@ -115,42 +121,6 @@ function markLoaded(event: React.SyntheticEvent<HTMLImageElement>) {
   event.currentTarget.dataset.loaded = "";
 }
 
-// Not yet-another-react-lightbox's Thumbnails plugin: it only shows as many thumbnails as the carousel
-// preloads, and preloading more would download several full-size originals around the current photo.
-function LightboxThumbnails({ slides, onSelect }: { slides: { thumbnail: string }[]; onSelect: (index: number) => void }) {
-  const { currentIndex } = useLightboxState();
-  const strip = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const active = strip.current?.children[currentIndex] as HTMLElement | undefined;
-    if (!strip.current || !active) return;
-    const left = active.offsetLeft - (strip.current.clientWidth - active.offsetWidth) / 2;
-    strip.current.scrollTo({ left, behavior: "smooth" });
-  }, [currentIndex]);
-
-  return (
-    <div
-      ref={strip}
-      className="lightbox-thumbnails"
-      // Scrolling or dragging the strip must not swipe the photo above it.
-      onWheel={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
-    >
-      {slides.map(({ thumbnail }, index) => (
-        <button
-          key={thumbnail}
-          type="button"
-          aria-label={`Photo ${index + 1}`}
-          aria-current={index === currentIndex || undefined}
-          onClick={() => onSelect(index)}
-        >
-          <img src={thumbnail} alt="" loading="lazy" decoding="async" />
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function AlbumIndex({ activeSlug }: { activeSlug: string | null }) {
   const nav = useRef<HTMLElement>(null);
 
@@ -171,43 +141,6 @@ function AlbumIndex({ activeSlug }: { activeSlug: string | null }) {
         </a>
       ))}
     </nav>
-  );
-}
-
-function SpecList({ className, items }: { className: string; items: string[] }) {
-  return (
-    <span className={className}>
-      {items.map((item) => (
-        <span key={item}>{item}</span>
-      ))}
-    </span>
-  );
-}
-
-function LightboxPosition({ album }: { album: (typeof galleryAlbums)[number] }) {
-  const { currentIndex } = useLightboxState();
-  const photo = album.photos[currentIndex];
-  return (
-    <div className="lightbox-position">
-      <div>
-        {album.title !== null && <span className="lightbox-album">{album.title}</span>}
-        <span className="lightbox-counter">
-          {currentIndex + 1} / {album.photos.length}
-        </span>
-      </div>
-      {photo && (photo.camera || photo.taken) && (
-        <div className="lightbox-capture">
-          {photo.camera && <span className="lightbox-camera">{photo.camera}</span>}
-          {photo.taken && <span>{photo.taken}</span>}
-        </div>
-      )}
-      {photo && (
-        <div className="lightbox-specs">
-          {photo.settings && <SpecList className="lightbox-settings" items={photo.settings} />}
-          <SpecList className="lightbox-file" items={photo.file} />
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -243,6 +176,8 @@ function AlbumCovers() {
 
 export function App() {
   const [lightbox, setLightbox] = useState({ albumIndex: 0, photoIndex: -1 });
+  // Mounted on first open and kept afterwards, so it can animate closing.
+  const [lightboxMounted, setLightboxMounted] = useState(false);
   const lightboxAlbum = galleryAlbums[lightbox.albumIndex];
   const header = useRef<HTMLElement>(null);
   const activeSlug = useActiveAlbum(header);
@@ -260,6 +195,20 @@ export function App() {
       if (slug) document.getElementById(slug)?.scrollIntoView({ behavior: "instant" });
     });
     return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Fetches the lightbox's code at the first sign of a visitor (a pointer over or touching the page, or a key),
+  // which comes before their first click on a photo, rather than right away, when it would compete with the photos.
+  useEffect(() => {
+    const events = ["pointerover", "pointerdown", "focusin", "keydown"] as const;
+    const prefetch = () => {
+      for (const event of events) window.removeEventListener(event, prefetch);
+      void loadLightbox();
+    };
+    for (const event of events) window.addEventListener(event, prefetch, { passive: true });
+    return () => {
+      for (const event of events) window.removeEventListener(event, prefetch);
+    };
   }, []);
 
   return (
@@ -312,7 +261,10 @@ export function App() {
                 targetRowHeight={280}
                 rowConstraints={{ minPhotos: 1, maxPhotos: 5 }}
                 spacing={4}
-                onClick={({ index }) => setLightbox({ albumIndex, photoIndex: start + index })}
+                onClick={({ index }) => {
+                  setLightbox({ albumIndex, photoIndex: start + index });
+                  setLightboxMounted(true);
+                }}
                 componentsProps={{
                   container: { className: "gallery" },
                   // The blurred preview fills the photo's box until the thumbnail has loaded and faded in over it.
@@ -324,32 +276,16 @@ export function App() {
           </section>
         ))}
 
-        <Lightbox
-          open={lightbox.photoIndex >= 0}
-          close={() => setLightbox((current) => ({ ...current, photoIndex: -1 }))}
-          index={Math.max(lightbox.photoIndex, 0)}
-          slides={lightboxAlbum?.slides ?? []}
-          plugins={[Zoom, Download]}
-          zoom={{ maxZoomPixelRatio: 1.13, zoomInMultiplier: 1.25, doubleClickMaxStops: 1 }}
-          carousel={{ finite: false, imageFit: "contain", preload: 0 }}
-          toolbar={{ buttons: ["download", "zoom", "close"] }}
-          render={{
-            controls: () => (
-              <>
-                {lightboxAlbum && <LightboxPosition album={lightboxAlbum} />}
-                {lightboxAlbum && lightboxAlbum.slides.length > 1 && (
-                  <LightboxThumbnails
-                    slides={lightboxAlbum.slides}
-                    onSelect={(photoIndex) => setLightbox((current) => ({ ...current, photoIndex }))}
-                  />
-                )}
-              </>
-            ),
-          }}
-          on={{ view: ({ index: photoIndex }) => setLightbox((current) => ({ ...current, photoIndex })) }}
-          className={lightboxAlbum && lightboxAlbum.slides.length > 1 ? "lightbox-with-thumbnails" : undefined}
-          controller={{ closeOnBackdropClick: true, closeOnPullDown: true }}
-        />
+        {lightboxMounted && (
+          <Suspense fallback={null}>
+            <PhotoLightbox
+              album={lightboxAlbum}
+              index={lightbox.photoIndex}
+              onView={(photoIndex) => setLightbox((current) => ({ ...current, photoIndex }))}
+              onClose={() => setLightbox((current) => ({ ...current, photoIndex: -1 }))}
+            />
+          </Suspense>
+        )}
       </main>
 
       <footer className="site-footer">

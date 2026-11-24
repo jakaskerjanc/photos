@@ -5,10 +5,14 @@ import { exiftool } from "exiftool-vendored";
 import sharp from "sharp";
 import { type CaptureDate, cameraName, captureDate, exposureSettings } from "./exif";
 
-// 640px covers a grid photo on a normal screen; 960px keeps landscape photos sharp on 2x screens.
-const thumbnailWidths = [640, 960];
+// Grid rows are about 280px tall, so a portrait photo is shown around 190px wide and a landscape one around
+// 420px, or up to the full screen width on phones. Several sizes let the browser pick the smallest one
+// that is sharp at the displayed size and the screen's pixel density; 960px keeps landscape photos sharp on 2x screens.
+const thumbnailWidths = [320, 480, 640, 960];
 const panoramaAspectRatio = 2;
-const panoramaThumbnailHeight = 960;
+// A panorama fills the page width, so its displayed height is the screen width divided by its aspect ratio:
+// 480px covers phones and normal screens, 960px wide 2x screens.
+const panoramaThumbnailHeights = [480, 960];
 const maxPanoramaThumbnailWidth = 6144;
 const thumbnailQuality = 76;
 // A source file this small for its resolution is already heavily compressed. Its thumbnail is encoded at a
@@ -35,13 +39,13 @@ export type ProcessedPhoto = {
   file: string[]; // the published file's resolution and size, e.g. ["6192 × 4128", "25.6 MP", "8.4 MB"]
 };
 
-// Panoramas get a single thumbnail that is already large enough for any screen.
-// Small photos are never enlarged, so they may end up with only one size.
+// Panoramas are sized by height rather than width, capped at maxPanoramaThumbnailWidth.
+// Small photos are never enlarged, so they may end up with fewer sizes.
 export function thumbnailSizes(width: number, height: number) {
   const aspectRatio = width / height;
   const targetWidths =
     aspectRatio >= panoramaAspectRatio
-      ? [Math.min(maxPanoramaThumbnailWidth, Math.round(aspectRatio * panoramaThumbnailHeight))]
+      ? panoramaThumbnailHeights.map((height) => Math.min(maxPanoramaThumbnailWidth, Math.round(aspectRatio * height)))
       : thumbnailWidths;
   const pixelWidths = [...new Set(targetWidths.map((targetWidth) => Math.min(width, targetWidth)))];
   return pixelWidths.map((pixelWidth) => ({ width: pixelWidth, height: Math.round((height * pixelWidth) / width) }));
@@ -148,12 +152,24 @@ export async function processPhoto(
   }));
   const fullImagePath = join(directories.fullImages, fileName);
 
+  const staleThumbnails = [];
   for (const thumbnail of thumbnails) {
-    if (!(await outputIsCurrent(source, thumbnail.path))) {
+    if (!(await outputIsCurrent(source, thumbnail.path))) staleThumbnails.push(thumbnail);
+  }
+  if (staleThumbnails.length > 0) {
+    // Decoding a large source is most of the work, so it is decoded once, at the largest thumbnail's size
+    // (rotated and converted to sRGB like a direct resize), and every thumbnail is scaled from that.
+    const largest = thumbnails[thumbnails.length - 1];
+    const { data, info } = await sharp(sourcePath, { autoOrient: true })
+      .resize(largest.width, largest.height, { fit: "fill" })
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const quality = thumbnailQualityFor(source.size, size.width, size.height);
+    for (const thumbnail of staleThumbnails) {
       await writeOutput(source, thumbnail.path, (temporaryPath) =>
-        sharp(sourcePath, { autoOrient: true })
-          .resize({ width: thumbnail.width, withoutEnlargement: true })
-          .webp({ quality: thumbnailQualityFor(source.size, size.width, size.height) })
+        sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
+          .resize(thumbnail.width, thumbnail.height, { fit: "fill" })
+          .webp({ quality })
           .toFile(temporaryPath),
       );
     }
