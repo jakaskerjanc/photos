@@ -4,7 +4,11 @@ export type GalleryPhoto = GalleryImage & {
   // A tiny blurred preview, shown as a data URI while the thumbnail loads.
   placeholder: string;
   thumbnails: GalleryImage[]; // smallest first
-  details?: string; // date taken and camera settings, from EXIF
+  // From EXIF: the date taken, e.g. "6 Aug 2026", the camera, e.g. "Sony α6700", and its settings.
+  taken?: string;
+  camera?: string;
+  settings?: string[]; // e.g. ["16mm", "f/8", "1/250 s", "ISO 100"]
+  file: string[]; // the full image's resolution and size, e.g. ["6192 × 4128", "25.6 MP", "8.4 MB"]
 };
 
 export type GalleryAlbum = {

@@ -38,7 +38,7 @@ photos/
 - Photos placed directly in `photos` (not in a subfolder) are shown first, under the heading **Selected** (no heading if there are no albums).
 - File names only need to be unique within an album. Two photos whose names differ only by extension or letter case (e.g. `sunset.jpg` and `Sunset.png`) stop the build with an error, because their thumbnails would share a name.
 - Albums can't be nested; subfolders inside an album are ignored with a warning.
-- Each album shows the dates its photos were taken (read from their EXIF, e.g. *5–17 Aug 2026*), and the lightbox shows each photo's date and camera settings. Location data is never read or published.
+- Each album shows the dates its photos were taken (read from their EXIF, e.g. *5–17 Aug 2026*), and the lightbox shows each photo's date and camera settings. It also shows the photo's resolution and file size. Location data is never read or published.
 - When there are at least two albums, a cover card for each sits at the top of the page. The cover is the album's first photo unless `album.md` names another.
 - Photos with an aspect ratio of at least 2:1 get a row of their own so panoramas aren't shrunk between other photos.
 

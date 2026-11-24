@@ -35,6 +35,7 @@ describe("formatManifest", () => {
       { src: `/photos/derivatives/${name}-640w.webp`, width: 640, height: 480 },
       { src: `/photos/derivatives/${name}-960w.webp`, width: 960, height: 720 },
     ],
+    file: ["4000 × 3000", "12 MP", "3.2 MB"],
   });
 
   it("round-trips loose and titled albums", async () => {
@@ -54,7 +55,7 @@ describe("formatManifest", () => {
         dates: "5–17 Aug 2026",
         description: 'Two "weeks".\n\nSecond paragraph with ${x} and `ticks`.',
         cover: 1,
-        photos: [photo("a"), { ...photo("b"), details: "6 Aug 2026 · Sony α6700 · f/8" }],
+        photos: [photo("a"), { ...photo("b"), taken: "6 Aug 2026", camera: "Sony α6700", settings: ["16mm", "f/8"] }],
       },
     ];
 

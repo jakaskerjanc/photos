@@ -1,5 +1,5 @@
-// Turns a photo's EXIF tags into the short texts the gallery shows: the date it was taken and a
-// line of camera settings such as "Sony α6700 · 16mm · f/8 · 1/250 s · ISO 100". Location is never read.
+// Turns a photo's EXIF tags into the short texts the gallery shows: the date it was taken, the camera
+// ("Sony α6700") and its settings ("16mm", "f/8", "1/250 s", "ISO 100"). Location is never read.
 
 export type PhotoTags = {
   DateTimeOriginal?: unknown;
@@ -104,16 +104,15 @@ function shutterSpeed(value: unknown) {
   return `${trimmed(seconds)} s`;
 }
 
-export function exposureDetails(tags: PhotoTags) {
+// Focal length, aperture, shutter speed and ISO, leaving out what the photo doesn't record.
+export function exposureSettings(tags: PhotoTags) {
   const focalLength = number(tags.FocalLength);
   const aperture = number(tags.FNumber);
   const iso = number(tags.ISO);
-  const parts = [
-    cameraName(tags.Make, tags.Model),
+  return [
     focalLength && `${trimmed(focalLength)}mm`,
     aperture && `f/${trimmed(aperture)}`,
     shutterSpeed(tags.ExposureTime),
     iso && `ISO ${Math.round(iso)}`,
-  ].filter(Boolean);
-  return parts.length > 0 ? parts.join(" · ") : undefined;
+  ].filter((setting): setting is string => Boolean(setting));
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ExifDateTime } from "exiftool-vendored";
-import { cameraName, captureDate, exposureDetails, formatDateRange } from "./exif";
+import { cameraName, captureDate, exposureSettings, formatDateRange } from "./exif";
 
 describe("captureDate", () => {
   it("reads the camera's local date from DateTimeOriginal", () => {
@@ -64,26 +64,26 @@ describe("cameraName", () => {
   });
 });
 
-describe("exposureDetails", () => {
-  it("joins camera, focal length, aperture, shutter speed and ISO", () => {
-    assert.equal(
-      exposureDetails({ Make: "SONY", Model: "ILCE-6700", FocalLength: "16.0 mm", FNumber: 22, ExposureTime: 0.3, ISO: 100 }),
-      "Sony α6700 · 16mm · f/22 · 0.3 s · ISO 100",
+describe("exposureSettings", () => {
+  it("lists focal length, aperture, shutter speed and ISO, without the camera", () => {
+    assert.deepEqual(
+      exposureSettings({ Make: "SONY", Model: "ILCE-6700", FocalLength: "16.0 mm", FNumber: 22, ExposureTime: 0.3, ISO: 100 }),
+      ["16mm", "f/22", "0.3 s", "ISO 100"],
     );
   });
 
   it("writes fast shutter speeds as fractions", () => {
-    assert.equal(exposureDetails({ ExposureTime: "1/1250" }), "1/1250 s");
-    assert.equal(exposureDetails({ ExposureTime: 0.004 }), "1/250 s");
-    assert.equal(exposureDetails({ ExposureTime: 2 }), "2 s");
+    assert.deepEqual(exposureSettings({ ExposureTime: "1/1250" }), ["1/1250 s"]);
+    assert.deepEqual(exposureSettings({ ExposureTime: 0.004 }), ["1/250 s"]);
+    assert.deepEqual(exposureSettings({ ExposureTime: 2 }), ["2 s"]);
   });
 
   it("keeps fractional focal lengths and apertures", () => {
-    assert.equal(exposureDetails({ FocalLength: "4.3 mm", FNumber: 5.6 }), "4.3mm · f/5.6");
+    assert.deepEqual(exposureSettings({ FocalLength: "4.3 mm", FNumber: 5.6 }), ["4.3mm", "f/5.6"]);
   });
 
-  it("skips what's missing and returns nothing for photos without EXIF", () => {
-    assert.equal(exposureDetails({ FNumber: 8 }), "f/8");
-    assert.equal(exposureDetails({}), undefined);
+  it("skips what's missing", () => {
+    assert.deepEqual(exposureSettings({ FNumber: 8 }), ["f/8"]);
+    assert.deepEqual(exposureSettings({}), []);
   });
 });

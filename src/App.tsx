@@ -174,9 +174,19 @@ function AlbumIndex({ activeSlug }: { activeSlug: string | null }) {
   );
 }
 
+function SpecList({ className, items }: { className: string; items: string[] }) {
+  return (
+    <span className={className}>
+      {items.map((item) => (
+        <span key={item}>{item}</span>
+      ))}
+    </span>
+  );
+}
+
 function LightboxPosition({ album }: { album: (typeof galleryAlbums)[number] }) {
   const { currentIndex } = useLightboxState();
-  const details = album.photos[currentIndex]?.details;
+  const photo = album.photos[currentIndex];
   return (
     <div className="lightbox-position">
       <div>
@@ -185,7 +195,18 @@ function LightboxPosition({ album }: { album: (typeof galleryAlbums)[number] }) 
           {currentIndex + 1} / {album.photos.length}
         </span>
       </div>
-      {details && <div className="lightbox-details">{details}</div>}
+      {photo && (photo.camera || photo.taken) && (
+        <div className="lightbox-capture">
+          {photo.camera && <span className="lightbox-camera">{photo.camera}</span>}
+          {photo.taken && <span>{photo.taken}</span>}
+        </div>
+      )}
+      {photo && (
+        <div className="lightbox-specs">
+          {photo.settings && <SpecList className="lightbox-settings" items={photo.settings} />}
+          <SpecList className="lightbox-file" items={photo.file} />
+        </div>
+      )}
     </div>
   );
 }
