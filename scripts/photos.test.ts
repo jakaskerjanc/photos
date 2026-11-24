@@ -12,28 +12,41 @@ after(async () => {
 });
 
 describe("thumbnailSizes", () => {
-  it("uses 640px and 960px wide thumbnails for normal photos", () => {
+  it("uses 320px to 960px wide thumbnails for normal photos", () => {
     assert.deepEqual(thumbnailSizes(4000, 3000), [
+      { width: 320, height: 240 },
+      { width: 480, height: 360 },
       { width: 640, height: 480 },
       { width: 960, height: 720 },
     ]);
     assert.deepEqual(thumbnailSizes(3000, 4000), [
+      { width: 320, height: 427 },
+      { width: 480, height: 640 },
       { width: 640, height: 853 },
       { width: 960, height: 1280 },
     ]);
   });
 
-  it("sizes panoramas for a 960px display height, with a single thumbnail", () => {
-    assert.deepEqual(thumbnailSizes(8000, 4000), [{ width: 1920, height: 960 }]);
+  it("sizes panoramas for 480px and 960px display heights", () => {
+    assert.deepEqual(thumbnailSizes(8000, 4000), [
+      { width: 960, height: 480 },
+      { width: 1920, height: 960 },
+    ]);
   });
 
   it("caps panorama thumbnails at 6144px wide", () => {
     assert.deepEqual(thumbnailSizes(40000, 2000), [{ width: 6144, height: 307 }]);
+    assert.deepEqual(thumbnailSizes(80000, 8000), [
+      { width: 4800, height: 480 },
+      { width: 6144, height: 614 },
+    ]);
   });
 
   it("never enlarges small photos", () => {
     assert.deepEqual(thumbnailSizes(300, 200), [{ width: 300, height: 200 }]);
     assert.deepEqual(thumbnailSizes(800, 600), [
+      { width: 320, height: 240 },
+      { width: 480, height: 360 },
       { width: 640, height: 480 },
       { width: 800, height: 600 },
     ]);
@@ -121,6 +134,8 @@ describe("processPhoto", () => {
     assert.equal(result.height, 1200);
     // The 800px wide source is not enlarged to 960px.
     assert.deepEqual(result.thumbnails, [
+      { path: join(directories.derivatives, "portrait-320w.webp"), width: 320, height: 480 },
+      { path: join(directories.derivatives, "portrait-480w.webp"), width: 480, height: 720 },
       { path: join(directories.derivatives, "portrait-640w.webp"), width: 640, height: 960 },
       { path: join(directories.derivatives, "portrait-800w.webp"), width: 800, height: 1200 },
     ]);
@@ -169,7 +184,7 @@ describe("processPhoto", () => {
   it("leaves no temporary files behind", async () => {
     await processPhoto(await writeCameraJpeg("a.jpg"), directories);
 
-    assert.deepEqual((await readdir(directories.derivatives)).sort(), ["a-640w.webp", "a-800w.webp"]);
+    assert.deepEqual((await readdir(directories.derivatives)).sort(), ["a-320w.webp", "a-480w.webp", "a-640w.webp", "a-800w.webp"]);
     assert.deepEqual(await readdir(directories.fullImages), ["a.jpg"]);
   });
 
